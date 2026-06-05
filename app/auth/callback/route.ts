@@ -11,31 +11,31 @@ export async function GET(request: NextRequest) {
   if (code) {
     const supabase = await createClient()
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+
     console.log('[auth/callback] exchange result:', {
       hasUser: !!data?.user,
       userEmail: data?.user?.email,
-      error: error?.message
+      error: error?.message,
     })
 
     if (!error && data.user?.email) {
       const user = data.user
       const admin = createAdminClient()
 
-      // Verificar se já enviou o email de boas-vindas
       const { data: profile } = await admin
         .from('profiles')
         .select('welcome_sent')
         .eq('id', user.id)
         .maybeSingle()
 
+      console.log('[auth/callback] profile:', profile)
+
       if (profile && !profile.welcome_sent) {
-        // Marcar como enviado primeiro para evitar duplicata
         await admin
           .from('profiles')
           .update({ welcome_sent: true })
           .eq('id', user.id)
 
-        // Disparar email (fire-and-forget)
         sendWelcomeEmail(user.email!).catch(err =>
           console.error('[auth/callback] welcome email error:', err)
         )
