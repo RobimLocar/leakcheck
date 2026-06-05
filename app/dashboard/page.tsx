@@ -52,6 +52,12 @@ const NAV_RECOVERY: { key: NavKey; label: string; icon: React.ReactNode }[] = [
   },
 ]
 
+const PRO_FEATURE_LABELS: Record<string, string> = {
+  'auto-recovery': 'Auto-Recovery',
+  'email': 'Email Sequences',
+  'alerts': 'Alerts',
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const AVATAR_COLORS = ['#ff6b6b', '#6b9bff', '#ffd93d', '#a29bfe', '#fd79a8', '#55efc4', '#fdcb6e', '#e17055']
@@ -99,6 +105,7 @@ export default function DashboardPage() {
   // Data state
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<'idle' | 'ok' | 'err'>('idle')
   const [lastSynced, setLastSynced] = useState<Date | null>(null)
   const [hasConnection, setHasConnection] = useState<boolean | null>(null)
   const [allPayments, setAllPayments] = useState<DbPayment[]>([])
@@ -111,6 +118,7 @@ export default function DashboardPage() {
   const [v3, setV3] = useState(0)
 
   const chartRef = useRef<HTMLCanvasElement>(null)
+  const syncResultTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Data fetching ──────────────────────────────────────────────────────────
 
@@ -150,6 +158,11 @@ export default function DashboardPage() {
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = '' }
+  }, [])
+
+  // Cleanup sync result timer on unmount
+  useEffect(() => {
+    return () => { if (syncResultTimer.current) clearTimeout(syncResultTimer.current) }
   }, [])
 
   // ── Derived data ───────────────────────────────────────────────────────────
@@ -317,15 +330,23 @@ export default function DashboardPage() {
   // ── Sync ──────────────────────────────────────────────────────────────────
 
   const handleSync = async () => {
+    if (syncResultTimer.current) clearTimeout(syncResultTimer.current)
     setSyncing(true)
+    setSyncResult('idle')
     try {
       const res = await fetch('/api/stripe/sync', { method: 'POST' })
       if (res.ok) {
         setLastSynced(new Date())
+        setSyncResult('ok')
         await fetchData()
+      } else {
+        setSyncResult('err')
       }
+    } catch {
+      setSyncResult('err')
     } finally {
       setSyncing(false)
+      syncResultTimer.current = setTimeout(() => setSyncResult('idle'), 3000)
     }
   }
 
@@ -380,6 +401,220 @@ export default function DashboardPage() {
         Settings
       </div>
     </>
+  )
+
+  // ── Reusable content blocks ────────────────────────────────────────────────
+
+  const StatCards = () => (
+    <div className="stat-grid">
+      <div className="sc" style={{ animationDelay: '.05s' }}>
+        <div className="sc-label">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+          Lost This Period
+        </div>
+        <div className="sc-val r">${v1.toLocaleString()}</div>
+        <div className="sc-change">in the last {periodDays} days</div>
+      </div>
+
+      <div className="sc" style={{ animationDelay: '.1s' }}>
+        <div className="sc-label">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" />
+          </svg>
+          Failed Payments
+        </div>
+        <div className="sc-val">{v2}</div>
+        <div className="sc-change">payments this period</div>
+      </div>
+
+      <div className="sc" style={{ animationDelay: '.15s' }}>
+        <div className="sc-label">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          Recovery Rate
+          <span className="sc-lock">🔒 Pro</span>
+        </div>
+        <div className="sc-val dim">—</div>
+        <div className="sc-change">Upgrade to track</div>
+      </div>
+
+      <div className="sc" style={{ animationDelay: '.2s' }}>
+        <div className="sc-label">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
+          </svg>
+          Recoverable
+        </div>
+        <div className="sc-val g">${v3.toLocaleString()}</div>
+        <div className="sc-change">within recovery window</div>
+      </div>
+    </div>
+  )
+
+  const ChartCard = () => (
+    <div className="chart-card">
+      <div className="chart-head">
+        <div className="chart-title">Failed Payments — Last {periodDays} Days</div>
+        <div className="chart-legend">
+          <div className="cl-item"><div className="cl-dot" style={{ background: 'var(--red)' }} />Lost</div>
+          <div className="cl-item"><div className="cl-dot" style={{ background: 'var(--grn)' }} />Recovered (Pro)</div>
+        </div>
+      </div>
+      <div className="chart-body">
+        <canvas id="chart" ref={chartRef} />
+      </div>
+    </div>
+  )
+
+  const PaymentsTable = () => (
+    <div className="table-card">
+      <div className="table-head">
+        <div className="table-title">
+          Failed Payments
+          <span className="tcount">{filteredPayments.length}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className="table-search">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search customers..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <button className="tb-btn out" style={{ fontSize: '11px', padding: '6px 10px' }}>
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export
+          </button>
+        </div>
+      </div>
+
+      <div className="th">
+        <span>Customer</span>
+        <span>Amount</span>
+        <span>Reason</span>
+        <span>Date</span>
+        <span style={{ textAlign: 'right' }}>Action</span>
+      </div>
+
+      {filteredPayments.length === 0 ? (
+        <div className="empty">
+          <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+          </svg>
+          <p>
+            {loading
+              ? 'Loading payments...'
+              : hasConnection === false
+              ? 'Connect Stripe to see your failed payments'
+              : 'No failed payments in this period'}
+          </p>
+        </div>
+      ) : (
+        filteredPayments.map((p, i) => {
+          const displayName = p.customer_name ?? p.customer_email ?? 'Unknown'
+          const color = avatarColor(p.stripe_invoice_id)
+          const ini = getInitials(p.customer_name, p.customer_email)
+          const tag = reasonTag(p.failure_reason)
+          return (
+            <div className="tr" key={p.id} style={{ animationDelay: `${i * 0.05}s` }}>
+              <div className="tr-customer">
+                <div className="tr-av" style={{ background: `${color}22`, color }}>
+                  {ini}
+                </div>
+                <div>
+                  <div className="tr-name">{displayName}</div>
+                  <div className="tr-email">{p.customer_email ?? ''}</div>
+                </div>
+              </div>
+              <div className="tr-amount">−${(p.amount / 100).toFixed(2)}</div>
+              <div><span className={`tag ${tag}`}>{p.failure_reason}</span></div>
+              <div className="tr-date">{fmtDate(p.created_at)}</div>
+              <div className="tr-action">
+                {p.status === 'recovered' ? (
+                  <span className="recover-btn done">✓ Recovered</span>
+                ) : (
+                  <Link href="/upgrade">
+                    <button className="recover-btn locked" title="Upgrade to recover">
+                      🔒 Recover
+                    </button>
+                  </Link>
+                )}
+              </div>
+            </div>
+          )
+        })
+      )}
+    </div>
+  )
+
+  const ProUpgradeCard = ({ feature }: { feature: string }) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '420px' }}>
+      <div style={{ textAlign: 'center', maxWidth: '400px', padding: '0 20px' }}>
+        <div style={{ fontSize: '44px', marginBottom: '20px' }}>🔒</div>
+        <div style={{ fontFamily: 'var(--D)', fontSize: '20px', fontWeight: 800, color: 'var(--tx)', marginBottom: '12px' }}>
+          {feature} is a Pro feature
+        </div>
+        <p style={{ color: 'var(--tx2)', fontSize: '14px', lineHeight: '1.7', marginBottom: '28px' }}>
+          Upgrade to Pro to unlock {feature.toLowerCase()} and start recovering failed payments automatically.
+        </p>
+        <Link href="/upgrade">
+          <button className="tb-btn red" style={{ fontSize: '13px', padding: '10px 22px' }}>
+            Upgrade to Pro →
+          </button>
+        </Link>
+      </div>
+    </div>
+  )
+
+  const SettingsCard = () => (
+    <div className="table-card" style={{ maxWidth: '520px' }}>
+      <div className="table-head">
+        <div className="table-title">Account Settings</div>
+      </div>
+      <div style={{ padding: '8px 20px 24px' }}>
+        {[
+          { label: 'Email', value: userEmail || '—' },
+          { label: 'Plan', value: 'Free' },
+        ].map(row => (
+          <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--bd)' }}>
+            <div style={{ fontSize: '13px', color: 'var(--tx2)' }}>{row.label}</div>
+            <div style={{ fontSize: '13px', color: 'var(--tx)', fontWeight: 500 }}>{row.value}</div>
+          </div>
+        ))}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--bd)' }}>
+          <div style={{ fontSize: '13px', color: 'var(--tx2)' }}>Stripe</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: hasConnection ? 'var(--grn)' : 'var(--tx3)' }} />
+            <span style={{ fontSize: '13px', color: 'var(--tx)', fontWeight: 500 }}>
+              {hasConnection ? 'Connected' : 'Not connected'}
+            </span>
+          </div>
+        </div>
+        {stripeAccountId && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--bd)' }}>
+            <div style={{ fontSize: '13px', color: 'var(--tx2)' }}>Account ID</div>
+            <div style={{ fontSize: '12px', color: 'var(--tx3)', fontFamily: 'monospace' }}>{stripeAccountId}</div>
+          </div>
+        )}
+        <div style={{ paddingTop: '20px' }}>
+          <Link href="/onboarding">
+            <button className="tb-btn out" style={{ fontSize: '12px' }}>
+              {hasConnection ? 'Reconnect Stripe' : 'Connect Stripe'}
+            </button>
+          </Link>
+        </div>
+      </div>
+    </div>
   )
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -472,25 +707,32 @@ export default function DashboardPage() {
                   className="tb-btn out"
                   onClick={handleSync}
                   disabled={syncing}
-                  style={syncing ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}
+                  style={{
+                    opacity: syncing ? 0.6 : 1,
+                    cursor: syncing ? 'not-allowed' : 'pointer',
+                    ...(syncResult === 'ok' && { borderColor: 'var(--grn)', color: 'var(--grn)' }),
+                    ...(syncResult === 'err' && { borderColor: 'var(--red)', color: 'var(--red)' }),
+                  }}
                 >
-                  <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <polyline points="23 4 23 10 17 10" />
-                    <polyline points="1 20 1 14 7 14" />
-                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-                  </svg>
-                  {syncing ? 'Syncing...' : 'Sync'}
+                  {syncing ? 'Syncing...' : syncResult === 'ok' ? '✓ Synced!' : syncResult === 'err' ? '✕ Error' : (
+                    <>
+                      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <polyline points="23 4 23 10 17 10" />
+                        <polyline points="1 20 1 14 7 14" />
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                      </svg>
+                      Sync
+                    </>
+                  )}
                 </button>
               )}
-              <Link href="/upgrade">
-                <button className="tb-btn out">
-                  <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
-                  </svg>
-                  Settings
-                </button>
-              </Link>
+              <button className="tb-btn out" onClick={() => setActiveNav('settings')}>
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
+                </svg>
+                Settings
+              </button>
               <Link href="/upgrade">
                 <button className="tb-btn red">⚡ Activate Recovery</button>
               </Link>
@@ -500,188 +742,63 @@ export default function DashboardPage() {
           {/* CONTENT */}
           <div className="content">
 
-            {/* No-connection banner */}
-            {!loading && hasConnection === false && (
-              <div className="upgrade-banner">
-                <div className="ub-left">
-                  <div className="ub-pip" />
-                  <div>
-                    <div className="ub-title">Connect your Stripe to see real data</div>
-                    <div className="ub-sub">Your dashboard is ready — link your Stripe account to start tracking failed payments.</div>
-                  </div>
-                </div>
-                <Link href="/onboarding">
-                  <button className="ub-btn">Connect Stripe →</button>
-                </Link>
-              </div>
-            )}
-
-            {/* Upgrade banner — only when connected and there are open losses */}
-            {!loading && hasConnection && totalLost > 0 && (
-              <div className="upgrade-banner">
-                <div className="ub-left">
-                  <div className="ub-pip" />
-                  <div>
-                    <div className="ub-title">
-                      💡 You have <strong style={{ color: 'var(--red)' }}>${totalLost.toLocaleString()}</strong> recoverable right now
-                    </div>
-                    <div className="ub-sub">Upgrade to Recovery plan to automatically retry failed payments and send recovery emails.</div>
-                  </div>
-                </div>
-                <Link href="/upgrade">
-                  <button className="ub-btn">Activate Recovery — $29/mo →</button>
-                </Link>
-              </div>
-            )}
-
-            {/* Stat cards */}
-            <div className="stat-grid">
-              <div className="sc" style={{ animationDelay: '.05s' }}>
-                <div className="sc-label">
-                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                  </svg>
-                  Lost This Period
-                </div>
-                <div className="sc-val r">${v1.toLocaleString()}</div>
-                <div className="sc-change">in the last {periodDays} days</div>
-              </div>
-
-              <div className="sc" style={{ animationDelay: '.1s' }}>
-                <div className="sc-label">
-                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" />
-                  </svg>
-                  Failed Payments
-                </div>
-                <div className="sc-val">{v2}</div>
-                <div className="sc-change">payments this period</div>
-              </div>
-
-              <div className="sc" style={{ animationDelay: '.15s' }}>
-                <div className="sc-label">
-                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  </svg>
-                  Recovery Rate
-                  <span className="sc-lock">🔒 Pro</span>
-                </div>
-                <div className="sc-val dim">—</div>
-                <div className="sc-change">Upgrade to track</div>
-              </div>
-
-              <div className="sc" style={{ animationDelay: '.2s' }}>
-                <div className="sc-label">
-                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
-                  </svg>
-                  Recoverable
-                </div>
-                <div className="sc-val g">${v3.toLocaleString()}</div>
-                <div className="sc-change">within recovery window</div>
-              </div>
-            </div>
-
-            {/* Chart */}
-            <div className="chart-card">
-              <div className="chart-head">
-                <div className="chart-title">Failed Payments — Last {periodDays} Days</div>
-                <div className="chart-legend">
-                  <div className="cl-item"><div className="cl-dot" style={{ background: 'var(--red)' }} />Lost</div>
-                  <div className="cl-item"><div className="cl-dot" style={{ background: 'var(--grn)' }} />Recovered (Pro)</div>
-                </div>
-              </div>
-              <div className="chart-body">
-                <canvas id="chart" ref={chartRef} />
-              </div>
-            </div>
-
-            {/* Table */}
-            <div className="table-card">
-              <div className="table-head">
-                <div className="table-title">
-                  Failed Payments
-                  <span className="tcount">{filteredPayments.length}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div className="table-search">
-                    <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-                    </svg>
-                    <input
-                      type="text"
-                      placeholder="Search customers..."
-                      value={search}
-                      onChange={e => setSearch(e.target.value)}
-                    />
-                  </div>
-                  <button className="tb-btn out" style={{ fontSize: '11px', padding: '6px 10px' }}>
-                    <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    Export
-                  </button>
-                </div>
-              </div>
-
-              <div className="th">
-                <span>Customer</span>
-                <span>Amount</span>
-                <span>Reason</span>
-                <span>Date</span>
-                <span style={{ textAlign: 'right' }}>Action</span>
-              </div>
-
-              {filteredPayments.length === 0 ? (
-                <div className="empty">
-                  <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-                  </svg>
-                  <p>
-                    {loading
-                      ? 'Loading payments...'
-                      : hasConnection === false
-                      ? 'Connect Stripe to see your failed payments'
-                      : 'No failed payments in this period'}
-                  </p>
-                </div>
-              ) : (
-                filteredPayments.map((p, i) => {
-                  const displayName = p.customer_name ?? p.customer_email ?? 'Unknown'
-                  const color = avatarColor(p.stripe_invoice_id)
-                  const ini = getInitials(p.customer_name, p.customer_email)
-                  const tag = reasonTag(p.failure_reason)
-                  return (
-                    <div className="tr" key={p.id} style={{ animationDelay: `${i * 0.05}s` }}>
-                      <div className="tr-customer">
-                        <div className="tr-av" style={{ background: `${color}22`, color }}>
-                          {ini}
-                        </div>
-                        <div>
-                          <div className="tr-name">{displayName}</div>
-                          <div className="tr-email">{p.customer_email ?? ''}</div>
-                        </div>
-                      </div>
-                      <div className="tr-amount">−${(p.amount / 100).toFixed(2)}</div>
-                      <div><span className={`tag ${tag}`}>{p.failure_reason}</span></div>
-                      <div className="tr-date">{fmtDate(p.created_at)}</div>
-                      <div className="tr-action">
-                        {p.status === 'recovered' ? (
-                          <span className="recover-btn done">✓ Recovered</span>
-                        ) : (
-                          <Link href="/upgrade">
-                            <button className="recover-btn locked" title="Upgrade to recover">
-                              🔒 Recover
-                            </button>
-                          </Link>
-                        )}
+            {/* ── DASHBOARD ── */}
+            {activeNav === 'dashboard' && (
+              <>
+                {!loading && hasConnection === false && (
+                  <div className="upgrade-banner">
+                    <div className="ub-left">
+                      <div className="ub-pip" />
+                      <div>
+                        <div className="ub-title">Connect your Stripe to see real data</div>
+                        <div className="ub-sub">Your dashboard is ready — link your Stripe account to start tracking failed payments.</div>
                       </div>
                     </div>
-                  )
-                })
-              )}
-            </div>
+                    <Link href="/onboarding">
+                      <button className="ub-btn">Connect Stripe →</button>
+                    </Link>
+                  </div>
+                )}
+                {!loading && hasConnection && totalLost > 0 && (
+                  <div className="upgrade-banner">
+                    <div className="ub-left">
+                      <div className="ub-pip" />
+                      <div>
+                        <div className="ub-title">
+                          💡 You have <strong style={{ color: 'var(--red)' }}>${totalLost.toLocaleString()}</strong> recoverable right now
+                        </div>
+                        <div className="ub-sub">Upgrade to Recovery plan to automatically retry failed payments and send recovery emails.</div>
+                      </div>
+                    </div>
+                    <Link href="/upgrade">
+                      <button className="ub-btn">Activate Recovery — $29/mo →</button>
+                    </Link>
+                  </div>
+                )}
+                <StatCards />
+                <ChartCard />
+                <PaymentsTable />
+              </>
+            )}
+
+            {/* ── PAYMENTS ── */}
+            {activeNav === 'payments' && <PaymentsTable />}
+
+            {/* ── REVENUE ── */}
+            {activeNav === 'revenue' && (
+              <>
+                <StatCards />
+                <ChartCard />
+              </>
+            )}
+
+            {/* ── PRO LOCKED ── */}
+            {(activeNav === 'auto-recovery' || activeNav === 'email' || activeNav === 'alerts') && (
+              <ProUpgradeCard feature={PRO_FEATURE_LABELS[activeNav]} />
+            )}
+
+            {/* ── SETTINGS ── */}
+            {activeNav === 'settings' && <SettingsCard />}
 
           </div>{/* /content */}
         </div>{/* /main */}
