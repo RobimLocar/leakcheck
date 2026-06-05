@@ -12,27 +12,28 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient()
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
-    if (!error) {
+    if (!error && data.user?.email) {
       const user = data.user
-      if (user?.email) {
-        const admin = createAdminClient()
-        // Fire-and-forget: do not block the redirect on email delivery
-        admin
+      const admin = createAdminClient()
+
+      // Verificar se já enviou o email de boas-vindas
+      const { data: profile } = await admin
+        .from('profiles')
+        .select('welcome_sent')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (profile && !profile.welcome_sent) {
+        // Marcar como enviado primeiro para evitar duplicata
+        await admin
           .from('profiles')
-          .select('welcome_sent')
+          .update({ welcome_sent: true })
           .eq('id', user.id)
-          .maybeSingle()
-          .then(({ data: profile }) => {
-            if (profile && !profile.welcome_sent) {
-              return sendWelcomeEmail(user.email!).then(() =>
-                admin
-                  .from('profiles')
-                  .update({ welcome_sent: true })
-                  .eq('id', user.id),
-              )
-            }
-          })
-          .catch(err => console.error('[auth/callback] welcome email:', err))
+
+        // Disparar email (fire-and-forget)
+        sendWelcomeEmail(user.email).catch(err =>
+          console.error('[auth/callback] welcome email error:', err)
+        )
       }
 
       return NextResponse.redirect(`${origin}${next}`)
