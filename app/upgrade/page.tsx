@@ -74,6 +74,7 @@ export default function UpgradePage() {
   const [lostAmt, setLostAmt] = useState(0)
   const [roiAmt, setRoiAmt] = useState(0)
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
   useEffect(() => {
     const animCount = (target: number, setter: (v: number) => void) => {
@@ -92,10 +93,23 @@ export default function UpgradePage() {
     return () => clearTimeout(t)
   }, [])
 
-  const checkout = (plan: string) => {
+  const checkout = async (plan: 'monthly' | 'lifetime') => {
     if (checkoutLoading) return
     setCheckoutLoading(plan)
-    setTimeout(() => setCheckoutLoading(null), 1500)
+    setCheckoutError(null)
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Checkout failed')
+      window.location.href = data.url
+    } catch (err) {
+      setCheckoutError(err instanceof Error ? err.message : 'Something went wrong. Try again.')
+      setCheckoutLoading(null)
+    }
   }
 
   const spots = Array.from({ length: LTD_TOTAL }, (_, i) => i < LTD_TAKEN)
@@ -173,6 +187,22 @@ export default function UpgradePage() {
             🔒 <strong style={{ color: 'var(--tx)' }}>SOC2</strong> compliant · Read-only OAuth
           </div>
         </div>
+
+        {/* Checkout error */}
+        {checkoutError && (
+          <div style={{
+            background: 'rgba(255,61,61,.08)',
+            border: '1px solid rgba(255,61,61,.25)',
+            color: 'var(--red)',
+            borderRadius: '10px',
+            padding: '12px 16px',
+            fontSize: '13.5px',
+            textAlign: 'center',
+            marginBottom: '8px',
+          }}>
+            {checkoutError}
+          </div>
+        )}
 
         {/* Pricing */}
         <div className="pricing">

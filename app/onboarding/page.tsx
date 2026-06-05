@@ -1,6 +1,7 @@
 'use client'
 
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 type ScanStatus = 'pending' | 'active' | 'done'
@@ -23,10 +24,25 @@ const BREAKDOWN = [
   { label: 'Insufficient funds', color: '#ff9898',    count: '2 payments', amount: '−$52'  },
 ]
 
-export default function OnboardingPage() {
+const ERROR_MESSAGES: Record<string, string> = {
+  stripe_denied:   'Stripe connection was cancelled. Try again.',
+  token_exchange:  'Could not connect to Stripe. Try again.',
+  db:              'Connection saved, but we hit a hiccup. Try again.',
+  misconfigured:   'Stripe Connect is not configured. Contact support.',
+}
+
+function OnboardingContent() {
+  const searchParams = useSearchParams()
   const [step, setStep] = useState(1)
   const [scanStatuses, setScanStatuses] = useState<ScanStatus[]>(Array(5).fill('pending'))
   const [scanFill, setScanFill] = useState(0)
+
+  // Auto-advance to scanning step after successful OAuth callback
+  useEffect(() => {
+    if (searchParams.get('connected') === 'true') {
+      setStep(2)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (step !== 2) return
@@ -64,6 +80,8 @@ export default function OnboardingPage() {
     if (n === step) return 'sd-label active'
     return 'sd-label'
   }
+
+  const connectError = searchParams.get('error')
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
@@ -149,7 +167,15 @@ export default function OnboardingPage() {
                     </div>
                   </div>
                 </div>
-                <button className="connect-btn" onClick={() => setStep(2)}>
+                {connectError && (
+                  <p className="login-error" style={{ marginBottom: '12px' }}>
+                    {ERROR_MESSAGES[connectError] ?? 'Something went wrong. Try again.'}
+                  </p>
+                )}
+                <button
+                  className="connect-btn"
+                  onClick={() => { window.location.href = '/api/stripe/connect' }}
+                >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
                     <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.594-7.305h.003z" />
                   </svg>
@@ -233,5 +259,13 @@ export default function OnboardingPage() {
 
       </div>
     </div>
+  )
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense>
+      <OnboardingContent />
+    </Suspense>
   )
 }
