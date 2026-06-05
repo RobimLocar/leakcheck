@@ -1,7 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { fetchFailedPayments } from '@/lib/stripe/fetchFailedPayments'
+import { sendPaymentRecoveryEmail } from '@/lib/resend/client'
 import { type NextRequest, NextResponse } from 'next/server'
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://leakcheck-three.vercel.app'
 
 export async function POST(request: NextRequest) {
   // Authenticate the caller
@@ -22,7 +25,7 @@ export async function POST(request: NextRequest) {
   if (connError || !connection) {
     return NextResponse.json(
       { error: 'No Stripe connection found. Connect your account first.' },
-      { status: 400 }
+      { status: 400 },
     )
   }
 
@@ -39,10 +42,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ synced: 0, total_lost: 0 })
   }
 
+  const admin = createAdminClient()
+
+  // Snapshot existing invoice IDs BEFORE the upsert so we can identify truly new rows
+  const { data: existing } = await admin
+    .from('failed_payments')
+    .select('stripe_invoice_id')
+    .eq('user_id', user.id)
+
+  const existingIds = new Set((existing ?? []).map((r: { stripe_invoice_id: string }) => r.stripe_invoice_id))
+
   // Write to the DB using the service role client (bypasses RLS).
   // ignoreDuplicates: true preserves any status the user has already set
   // (e.g., 'recovered') without overwriting it on re-sync.
-  const admin = createAdminClient()
   const rows = payments.map(p => ({ user_id: user.id, ...p }))
 
   const { error: upsertError } = await admin
@@ -54,6 +66,32 @@ export async function POST(request: NextRequest) {
   }
 
   const total_lost = payments.reduce((sum, p) => sum + p.amount, 0)
+
+  // Send recovery emails for new payments — pro users only, non-blocking
+  const newPayments = payments.filter(p => !existingIds.has(p.stripe_invoice_id))
+
+  if (newPayments.length > 0) {
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('is_pro')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (profile?.is_pro) {
+      for (const p of newPayments) {
+        if (p.customer_email) {
+          sendPaymentRecoveryEmail(p.customer_email, {
+            customerName: p.customer_name,
+            customerEmail: p.customer_email,
+            amount: p.amount,
+            currency: p.currency,
+            failureReason: p.failure_reason,
+            updatePaymentUrl: APP_URL,
+          }).catch(err => console.error('[sync] recovery email:', p.stripe_invoice_id, err))
+        }
+      }
+    }
+  }
 
   return NextResponse.json({ synced: payments.length, total_lost })
 }
