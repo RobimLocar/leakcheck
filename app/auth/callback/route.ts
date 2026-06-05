@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
           .eq('id', user.id)
 
         // Disparar email (fire-and-forget)
-        sendWelcomeEmail(user.email).catch(err =>
+        sendWelcomeEmail(user.email!).catch(err =>
           console.error('[auth/callback] welcome email error:', err)
         )
       }
