@@ -11,6 +11,11 @@ export async function GET(request: NextRequest) {
   if (code) {
     const supabase = await createClient()
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    console.log('[auth/callback] exchange result:', {
+      hasUser: !!data?.user,
+      userEmail: data?.user?.email,
+      error: error?.message
+    })
 
     if (!error && data.user?.email) {
       const user = data.user
