@@ -4,8 +4,6 @@ import { fetchFailedPayments } from '@/lib/stripe/fetchFailedPayments'
 import { sendPaymentRecoveryEmail } from '@/lib/resend/client'
 import { type NextRequest, NextResponse } from 'next/server'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://leakcheck-three.vercel.app'
-
 export async function POST(request: NextRequest) {
   // Authenticate the caller
   const supabase = await createClient()
@@ -82,11 +80,9 @@ export async function POST(request: NextRequest) {
         if (p.customer_email) {
           sendPaymentRecoveryEmail(p.customer_email, {
             customerName: p.customer_name,
-            customerEmail: p.customer_email,
             amount: p.amount,
             currency: p.currency,
             failureReason: p.failure_reason,
-            updatePaymentUrl: APP_URL,
           }).catch(err => console.error('[sync] recovery email:', p.stripe_invoice_id, err))
         }
       }
