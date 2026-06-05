@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -134,6 +135,10 @@ export default function LandingPage() {
   const closeMenu = () => {
     setMenuOpen(false)
     document.body.style.overflow = ''
+  }
+
+  const scrollTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
   }
 
   // Live counter
@@ -327,23 +332,23 @@ export default function LandingPage() {
       <nav>
         <div className="logo"><div className="pip" />LeakCheck</div>
         <ul className="nav-links">
-          <li><a href="#">How it works</a></li>
-          <li><a href="#">Pricing</a></li>
+          <li><a href="#how-it-works" onClick={e => { e.preventDefault(); scrollTo('how-it-works') }}>How it works</a></li>
+          <li><a href="#pricing" onClick={e => { e.preventDefault(); scrollTo('pricing') }}>Pricing</a></li>
           <li><a href="#">Blog<span className="nav-new">New</span></a></li>
         </ul>
-        <a href="#" className="btn btn-w" style={{ fontSize: '14px', padding: '10px 20px' }}>
+        <Link href="/onboarding" className="btn btn-w" style={{ fontSize: '14px', padding: '10px 20px' }}>
           Connect Stripe — Free
-        </a>
+        </Link>
         <button className={`ham${menuOpen ? ' open' : ''}`} aria-label="Menu" onClick={toggleMenu}>
           <span className="ham-l" /><span className="ham-l" /><span className="ham-l" />
         </button>
       </nav>
 
       <div className={`drawer${menuOpen ? ' open' : ''}`}>
-        <a href="#" onClick={closeMenu}>How it works</a>
-        <a href="#" onClick={closeMenu}>Pricing</a>
+        <a href="#how-it-works" onClick={e => { e.preventDefault(); closeMenu(); scrollTo('how-it-works') }}>How it works</a>
+        <a href="#pricing" onClick={e => { e.preventDefault(); closeMenu(); scrollTo('pricing') }}>Pricing</a>
         <a href="#" onClick={closeMenu}>Blog</a>
-        <a href="#" className="btn btn-r" onClick={closeMenu}>Connect Stripe — Free →</a>
+        <Link href="/onboarding" className="btn btn-r" onClick={closeMenu}>Connect Stripe — Free →</Link>
       </div>
 
       {/* ── HERO ── */}
@@ -378,13 +383,13 @@ export default function LandingPage() {
           </div>
 
           <div className="hero-cta rv d3">
-            <a href="#" className="btn btn-w btn-full">
+            <Link href="/onboarding" className="btn btn-w btn-full">
               Connect my Stripe — Free
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
-            </a>
-            <a href="#" className="btn btn-o btn-full">See how it works</a>
+            </Link>
+            <a href="#how-it-works" className="btn btn-o btn-full" onClick={e => { e.preventDefault(); scrollTo('how-it-works') }}>See how it works</a>
           </div>
           <p className="hero-note rv d4">No migration · No setup · Read-only access · Cancel anytime</p>
 
@@ -492,7 +497,7 @@ export default function LandingPage() {
       </div>
 
       {/* ── BENTO — HOW IT WORKS ── */}
-      <div className="pad" style={{ background: 'var(--bg)' }}>
+      <div id="how-it-works" className="pad" style={{ background: 'var(--bg)' }}>
         <div className="inn">
           <div className="label rv">How it works</div>
           <h2 className="h2 rv d1">Three steps.<br />One number that changes everything.</h2>
@@ -633,7 +638,7 @@ export default function LandingPage() {
       </div>
 
       {/* ── PRICING ── */}
-      <div className="pad" style={{ background: 'var(--bg)' }}>
+      <div id="pricing" className="pad" style={{ background: 'var(--bg)' }}>
         <div className="inn">
           <div className="label rv">Pricing</div>
           <h2 className="h2 rv d1">Start free.<br />Upgrade when it pays for itself.</h2>
@@ -647,7 +652,7 @@ export default function LandingPage() {
               {FREE_FEATURES.map(f => (
                 <div key={f} className="pc-f"><div className="pc-ck">✓</div>{f}</div>
               ))}
-              <button className="pc-cta out">Connect Stripe — Free</button>
+              <Link href="/upgrade" className="pc-cta out" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>Connect Stripe — Free</Link>
             </div>
             <div className="pc hot rv d1">
               <div className="pc-badge">PAYS FOR ITSELF IN 3 DAYS</div>
@@ -658,7 +663,7 @@ export default function LandingPage() {
               {PRO_FEATURES.map(f => (
                 <div key={f} className="pc-f"><div className="pc-ck">✓</div>{f}</div>
               ))}
-              <button className="pc-cta red">Start recovering — $29/mo</button>
+              <Link href="/upgrade" className="pc-cta red" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>Start recovering — $29/mo</Link>
               <p className="pc-roi">⚡ Average founder recovers $340/mo · ROI = 11x</p>
             </div>
           </div>
@@ -707,12 +712,12 @@ export default function LandingPage() {
             Connect your Stripe in 60 seconds. See your number. Free forever.
           </p>
           <div className="cta-btns rv d3">
-            <a href="#" className="btn btn-w">
+            <Link href="/onboarding" className="btn btn-w">
               Connect my Stripe — Free{' '}
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
-            </a>
+            </Link>
             <a href="#" className="btn btn-o">See the demo</a>
           </div>
           <p className="rv" style={{ marginTop: '18px', fontSize: '13px', color: 'var(--tx3)', textAlign: 'center' }}>
