@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 export default function PrivacyPage() {
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--tx)', fontFamily: 'var(--B)' }}>
+    <div className="legal-page">
 
       {/* Header */}
       <header style={{ padding: '20px 32px', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

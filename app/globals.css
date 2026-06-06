@@ -414,6 +414,9 @@ nav {
 }
 .cta-btns { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
 
+/* ── LEGAL PAGES (privacy, terms) ── */
+.legal-page { min-height: 100vh; background: var(--bg); color: var(--tx); font-family: var(--B); cursor: auto; }
+
 /* ── FOOTER ── */
 footer { border-top: 1px solid var(--bd); background: var(--s1); padding: 28px 48px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .fl { font-family: var(--D); font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px; color: var(--tx); }
