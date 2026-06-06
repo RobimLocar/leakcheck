@@ -111,6 +111,7 @@ export default function DashboardPage() {
   const [allPayments, setAllPayments] = useState<DbPayment[]>([])
   const [stripeAccountId, setStripeAccountId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState('')
+  const [isPro, setIsPro] = useState(false)
 
   // Animated counter values
   const [v1, setV1] = useState(0)
@@ -127,6 +128,15 @@ export default function DashboardPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (user?.email) setUserEmail(user.email)
+
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_pro, plan_type')
+        .eq('id', user.id)
+        .maybeSingle()
+      if (profile?.is_pro) setIsPro(true)
+    }
 
     const { data: connection } = await supabase
       .from('stripe_connections')
@@ -189,6 +199,12 @@ export default function DashboardPage() {
     ),
     [periodPayments, search]
   )
+
+  const recoveredCount = useMemo(
+    () => periodPayments.filter(p => p.status === 'recovered').length,
+    [periodPayments]
+  )
+  const recoveryRate = failCount > 0 ? Math.round((recoveredCount / failCount) * 100) : 0
 
   const chartData = useMemo(() => {
     const n = periodDays
@@ -435,10 +451,10 @@ export default function DashboardPage() {
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           </svg>
           Recovery Rate
-          <span className="sc-lock">🔒 Pro</span>
+          {!isPro && <span className="sc-lock">🔒 Pro</span>}
         </div>
-        <div className="sc-val dim">—</div>
-        <div className="sc-change">Upgrade to track</div>
+        <div className={`sc-val${isPro ? ' g' : ' dim'}`}>{isPro ? `${recoveryRate}%` : '—'}</div>
+        <div className="sc-change">{isPro ? 'recovered this period' : 'Upgrade to track'}</div>
       </div>
 
       <div className="sc" style={{ animationDelay: '.2s' }}>
@@ -679,7 +695,9 @@ export default function DashboardPage() {
                 <div className="sb-uname" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {userEmail || '—'}
                 </div>
-                <div className="sb-uemail">Free plan</div>
+                <div className="sb-uemail" style={isPro ? { color: 'var(--grn)' } : undefined}>
+                  {isPro ? 'Pro plan' : 'Free plan'}
+                </div>
               </div>
             </div>
           </div>
@@ -733,9 +751,11 @@ export default function DashboardPage() {
                 </svg>
                 Settings
               </button>
-              <Link href="/upgrade">
-                <button className="tb-btn red">⚡ Activate Recovery</button>
-              </Link>
+              {!isPro && (
+                <Link href="/upgrade">
+                  <button className="tb-btn red">⚡ Activate Recovery</button>
+                </Link>
+              )}
             </div>
           </div>
 
@@ -794,7 +814,21 @@ export default function DashboardPage() {
 
             {/* ── PRO LOCKED ── */}
             {(activeNav === 'auto-recovery' || activeNav === 'email' || activeNav === 'alerts') && (
-              <ProUpgradeCard feature={PRO_FEATURE_LABELS[activeNav]} />
+              isPro ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '420px' }}>
+                  <div style={{ textAlign: 'center', maxWidth: '400px', padding: '0 20px' }}>
+                    <div style={{ fontSize: '44px', marginBottom: '20px' }}>✅</div>
+                    <div style={{ fontFamily: 'var(--D)', fontSize: '20px', fontWeight: 800, color: 'var(--tx)', marginBottom: '12px' }}>
+                      {PRO_FEATURE_LABELS[activeNav]} — Active
+                    </div>
+                    <p style={{ color: 'var(--tx2)', fontSize: '14px', lineHeight: '1.7' }}>
+                      This feature is active on your account. Full UI coming soon.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <ProUpgradeCard feature={PRO_FEATURE_LABELS[activeNav]} />
+              )
             )}
 
             {/* ── SETTINGS ── */}
