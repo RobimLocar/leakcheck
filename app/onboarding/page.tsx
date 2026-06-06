@@ -41,6 +41,9 @@ function OnboardingContent() {
   useEffect(() => {
     if (searchParams.get('connected') === 'true') {
       setStep(2)
+      // Dispara o sync real em background
+      fetch('/api/stripe/sync', { method: 'POST' })
+        .catch(err => console.error('[onboarding] sync failed:', err))
     }
   }, [searchParams])
 
