@@ -672,7 +672,7 @@ export default function LandingPage() {
               <div className="ltd-t">🔥 Lifetime Deal — First 20 founders only</div>
               <div className="ltd-d">Pay once, use forever. <strong>$149</strong> — saves $349/year vs monthly.</div>
             </div>
-            <a href="#" className="btn btn-o" style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>Get Lifetime Deal →</a>
+            <Link href="/upgrade" className="btn btn-o" style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>Get Lifetime Deal →</Link>
           </div>
         </div>
       </div>
@@ -730,11 +730,11 @@ export default function LandingPage() {
       <footer>
         <div className="fl"><div className="pip" />LeakCheck</div>
         <ul className="flinks">
-          <li><a href="#">Privacy</a></li>
-          <li><a href="#">Terms</a></li>
-          <li><a href="#">Status</a></li>
-          <li><a href="#">Twitter / X</a></li>
-          <li><a href="#">Changelog</a></li>
+          <li><Link href="/privacy">Privacy</Link></li>
+          <li><Link href="/terms">Terms</Link></li>
+          <li><a href="https://leakcheck-three.vercel.app" target="_blank" rel="noopener noreferrer">Status</a></li>
+          <li><a href="https://twitter.com" target="_blank" rel="noopener noreferrer">Twitter / X</a></li>
+          <li><Link href="/dashboard">Changelog</Link></li>
         </ul>
         <div className="fn">© 2025 LeakCheck · Built for indie founders</div>
       </footer>
