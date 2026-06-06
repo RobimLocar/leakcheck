@@ -543,6 +543,7 @@ footer { border-top: 1px solid var(--bd); background: var(--s1); padding: 28px 4
 
 /* ── TOPBAR ── */
 .topbar {
+  position: sticky; top: 0; z-index: 10;
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 28px; border-bottom: 1px solid var(--bd);
   background: rgba(5,5,7,.9); backdrop-filter: blur(12px);
