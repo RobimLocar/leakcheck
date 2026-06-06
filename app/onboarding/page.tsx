@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 
 type ScanStatus = 'pending' | 'active' | 'done'
 
@@ -36,6 +37,8 @@ function OnboardingContent() {
   const [step, setStep] = useState(1)
   const [scanStatuses, setScanStatuses] = useState<ScanStatus[]>(Array(5).fill('pending'))
   const [scanFill, setScanFill] = useState(0)
+  const [realAmount, setRealAmount] = useState<number | null>(null)
+  const [realCount, setRealCount] = useState<number | null>(null)
 
   // Auto-advance to scanning step after successful OAuth callback
   useEffect(() => {
@@ -67,7 +70,22 @@ function OnboardingContent() {
     })
 
     timers.push(setTimeout(() => setScanFill(100), 5000))
-    timers.push(setTimeout(() => setStep(3), 5400))
+    timers.push(setTimeout(() => {
+      setStep(3)
+      // Busca dados reais
+      const supabase = createClient()
+      supabase
+        .from('failed_payments')
+        .select('amount, status')
+        .eq('status', 'open')
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            const total = data.reduce((sum, p) => sum + p.amount, 0)
+            setRealAmount(Math.round(total / 100))
+            setRealCount(data.length)
+          }
+        })
+    }, 5400))
 
     return () => timers.forEach(clearTimeout)
   }, [step])
@@ -226,30 +244,34 @@ function OnboardingContent() {
             <div className="reveal-card">
               <div className="rv-header">
                 <div className="rv-label">You lost this month to failed payments</div>
-                <div className="rv-amount">$347</div>
-                <div className="rv-sub">across 8 failed payments in the last 30 days</div>
+                <div className="rv-amount">{realAmount !== null ? `$${realAmount.toLocaleString()}` : '$0'}</div>
+                <div className="rv-sub">
+                  across {realCount !== null ? `${realCount} failed payment${realCount !== 1 ? 's' : ''}` : '0 failed payments'} in the last 30 days
+                </div>
               </div>
               <div className="rv-body">
                 <div className="rv-insight">
-                  <strong>The good news:</strong> $312 of this is still recoverable within the 30-day window — if you act now.
+                  <strong>The good news:</strong> {realAmount !== null ? `$${realAmount.toLocaleString()}` : '$0'} of this is still recoverable within the 30-day window — if you act now.
                 </div>
-                <div className="rv-breakdown">
-                  {BREAKDOWN.map((row) => (
-                    <div key={row.label} className="rv-row">
-                      <div className="rv-reason">
-                        <div className="rv-dot" style={{ background: row.color }} />
-                        {row.label}
+                {realAmount === null && (
+                  <div className="rv-breakdown">
+                    {BREAKDOWN.map((row) => (
+                      <div key={row.label} className="rv-row">
+                        <div className="rv-reason">
+                          <div className="rv-dot" style={{ background: row.color }} />
+                          {row.label}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <span className="rv-count">{row.count}</span>
+                          <span className="rv-amount-row">{row.amount}</span>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <span className="rv-count">{row.count}</span>
-                        <span className="rv-amount-row">{row.amount}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
                 <div className="rv-cta-wrap">
                   <Link href="/upgrade" className="rv-btn main">
-                    ⚡ Recover $312 now — $29/mo
+                    ⚡ {realAmount !== null ? `Recover $${realAmount.toLocaleString()} now — $29/mo` : 'Activate Recovery — $29/mo'}
                   </Link>
                   <Link href="/dashboard" className="rv-btn ghost">
                     View Dashboard first
