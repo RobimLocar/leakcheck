@@ -222,8 +222,8 @@ export default function UpgradePage() {
             <div className="pc-f"><div className="pc-x">✕</div><span style={{ opacity: 0.5 }}>Auto-recovery</span></div>
             <div className="pc-f"><div className="pc-x">✕</div><span style={{ opacity: 0.5 }}>Recovery emails</span></div>
             <div className="pc-f"><div className="pc-x">✕</div><span style={{ opacity: 0.5 }}>Slack alerts</span></div>
-            <button className="pc-cta ghost" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
-              Current Plan
+            <button className="pc-cta ghost" onClick={() => { window.location.href = '/dashboard' }}>
+              Get Started Free
             </button>
           </div>
 
