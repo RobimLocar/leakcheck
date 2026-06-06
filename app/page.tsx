@@ -718,7 +718,7 @@ export default function LandingPage() {
                 <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
             </Link>
-            <a href="#" className="btn btn-o">See the demo</a>
+            <Link href="/dashboard" className="btn btn-o">See the demo</Link>
           </div>
           <p className="rv" style={{ marginTop: '18px', fontSize: '13px', color: 'var(--tx3)', textAlign: 'center' }}>
             No credit card · No migration · Read-only Stripe access
