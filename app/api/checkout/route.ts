@@ -11,7 +11,7 @@ const PLAN_CONFIG = {
 // ── Stripe REST helpers ───────────────────────────────────────────────────────
 
 async function stripeGet(path: string, key: string) {
-  const res = await fetch(`https://api.stripe.com/v1${path}`, {
+  const res = await fetch(`https://api.stripe.com${path}`, {
     headers: { Authorization: `Bearer ${key}` },
     cache: 'no-store',
   })
@@ -19,7 +19,7 @@ async function stripeGet(path: string, key: string) {
 }
 
 async function stripePost(path: string, params: Record<string, string>, key: string) {
-  const res = await fetch(`https://api.stripe.com/v1${path}`, {
+  const res = await fetch(`https://api.stripe.com${path}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${key}`,
