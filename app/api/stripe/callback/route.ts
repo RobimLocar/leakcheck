@@ -33,6 +33,8 @@ export async function GET(request: NextRequest) {
   })
 
   if (!tokenRes.ok) {
+    const errorBody = await tokenRes.text()
+    console.error('Stripe OAuth token exchange failed', tokenRes.status, errorBody)
     return NextResponse.redirect(`${origin}/onboarding?error=token_exchange`)
   }
 
