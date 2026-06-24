@@ -2,6 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { fetchFailedPayments } from '@/lib/stripe/fetchFailedPayments'
 import { sendPaymentRecoveryEmail } from '@/lib/resend/client'
+import { sendSlackAlert } from '@/lib/slack/client'
+import { sendSms } from '@/lib/sms/client'
+import { getSmsTemplate, getCustomEmailTemplate, renderTemplate, type MessageTemplates } from '@/lib/recovery/messageTemplates'
 import { type NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
@@ -27,10 +30,10 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Fetch failed payments from Stripe
+  // Fetch failed payments from Stripe using platform key + Stripe-Account header
   let payments
   try {
-    payments = await fetchFailedPayments(connection.access_token)
+    payments = await fetchFailedPayments(connection.stripe_account_id)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Stripe fetch failed'
     return NextResponse.json({ error: message }, { status: 502 })
@@ -71,20 +74,39 @@ export async function POST(request: NextRequest) {
   if (newPayments.length > 0) {
     const { data: profile } = await admin
       .from('profiles')
-      .select('is_pro')
+      .select('is_pro, slack_webhook_url, message_templates, sender_name')
       .eq('id', user.id)
       .maybeSingle()
 
     if (profile?.is_pro) {
+      const templates = profile.message_templates as MessageTemplates
+      const sender = { name: profile.sender_name, replyTo: user.email }
       for (const p of newPayments) {
+        const formatted = new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: p.currency.toUpperCase(),
+        }).format(p.amount / 100)
+        const vars = { amount: formatted, reason: p.failure_reason, name: p.customer_name ?? 'there', link: p.hosted_invoice_url ?? 'https://billing.stripe.com' }
+
         if (p.customer_email) {
-          sendPaymentRecoveryEmail(p.customer_email, {
+          const customEmail = getCustomEmailTemplate(templates, '1')
+          await sendPaymentRecoveryEmail(p.customer_email, {
             customerName: p.customer_name,
             amount: p.amount,
             currency: p.currency,
             failureReason: p.failure_reason,
-          }).catch(err => console.error('[sync] recovery email:', p.stripe_invoice_id, err))
+          }, customEmail ? renderTemplate(customEmail, vars) : undefined, sender, p.hosted_invoice_url).catch(err => console.error('[sync] recovery email:', p.stripe_invoice_id, err))
         }
+
+        await sendSms(
+          p.customer_phone,
+          renderTemplate(getSmsTemplate(templates, '1'), vars),
+        ).catch(err => console.error('[sync] sms:', p.stripe_invoice_id, err))
+
+        await sendSlackAlert(
+          profile.slack_webhook_url,
+          `🔴 New failed payment: ${formatted} from ${p.customer_name ?? p.customer_email ?? 'a customer'} — ${p.failure_reason}`,
+        ).catch(err => console.error('[sync] slack alert:', p.stripe_invoice_id, err))
       }
     }
   }

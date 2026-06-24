@@ -8,10 +8,12 @@ type StripeInvoice = {
   id: string
   customer_name: string | null
   customer_email: string | null
+  customer_phone: string | null
   amount_due: number
   currency: string
   charge: StripeCharge | null  // null when never attempted; expanded object when charged
   created: number              // Unix timestamp
+  hosted_invoice_url: string | null  // Stripe-hosted page where the customer can actually pay/update their card
 }
 
 type StripeListResponse<T> = {
@@ -23,10 +25,12 @@ export type FailedPayment = {
   stripe_invoice_id: string
   customer_name: string | null
   customer_email: string | null
+  customer_phone: string | null
   amount: number
   currency: string
   failure_reason: string
   created_at: string
+  hosted_invoice_url: string | null
 }
 
 const FAILURE_REASONS: Record<string, string> = {
@@ -42,7 +46,7 @@ function mapReason(code: string | null | undefined): string {
 }
 
 async function listInvoices(
-  accessToken: string,
+  stripeAccountId: string,
   status: 'open' | 'uncollectible',
   sinceUnix: number
 ): Promise<StripeInvoice[]> {
@@ -54,7 +58,10 @@ async function listInvoices(
   params.append('expand[]', 'data.charge')
 
   const res = await fetch(`https://api.stripe.com/v1/invoices?${params}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: {
+      Authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}`,
+      'Stripe-Account': stripeAccountId,
+    },
     // Never cache — always fetch live data
     cache: 'no-store',
   })
@@ -71,13 +78,13 @@ async function listInvoices(
 }
 
 export async function fetchFailedPayments(
-  accessToken: string
+  stripeAccountId: string
 ): Promise<FailedPayment[]> {
   const since = Math.floor((Date.now() - 90 * 24 * 60 * 60 * 1000) / 1000)
 
   const [openInvoices, uncollectibleInvoices] = await Promise.all([
-    listInvoices(accessToken, 'open', since),
-    listInvoices(accessToken, 'uncollectible', since),
+    listInvoices(stripeAccountId, 'open', since),
+    listInvoices(stripeAccountId, 'uncollectible', since),
   ])
 
   // Merge and deduplicate (an invoice shouldn't appear in both, but be safe)
@@ -92,9 +99,11 @@ export async function fetchFailedPayments(
     stripe_invoice_id: inv.id,
     customer_name:     inv.customer_name,
     customer_email:    inv.customer_email,
+    customer_phone:    inv.customer_phone,
     amount:            inv.amount_due,
     currency:          inv.currency,
     failure_reason:    mapReason(inv.charge?.failure_code),
     created_at:        new Date(inv.created * 1000).toISOString(),
+    hosted_invoice_url: inv.hosted_invoice_url,
   }))
 }
