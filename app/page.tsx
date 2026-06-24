@@ -79,7 +79,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Does it work with Substack or Gumroad?',
-    a: 'Currently LeakCheck connects directly to Stripe. Gumroad and Lemon Squeezy are on the roadmap for Q3 2025. Substack uses Stripe under the hood but doesn\'t expose the API directly.',
+    a: 'Currently LeakCheck connects directly to Stripe. Gumroad and Lemon Squeezy are on the roadmap. Substack uses Stripe under the hood but doesn\'t expose the API directly.',
   },
   {
     q: 'Can I customize the recovery messages?',
@@ -166,8 +166,9 @@ export default function LandingPage() {
     return () => clearTimeout(t)
   }, [])
 
-  // Canvas particles
+  // Canvas particles — disabled on mobile (no visual benefit, CPU cost not worth it)
   useEffect(() => {
+    if (window.innerWidth < 768) return
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
@@ -178,7 +179,8 @@ export default function LandingPage() {
     resize()
     window.addEventListener('resize', resize)
 
-    const particles = Array.from({ length: 80 }, () => ({
+    // 30 particles instead of 80: reduces O(n²) proximity checks from 3,160 to 435 per frame
+    const particles = Array.from({ length: 30 }, () => ({
       x: Math.random() * (W || 900),
       y: Math.random() * (H || 600),
       vx: (Math.random() - 0.5) * 0.3,
@@ -204,9 +206,9 @@ export default function LandingPage() {
           const dx = particles[i].x - particles[j].x
           const dy = particles[i].y - particles[j].y
           const d = Math.sqrt(dx * dx + dy * dy)
-          if (d < 100) {
+          if (d < 80) {
             ctx.beginPath()
-            ctx.strokeStyle = `rgba(255,61,61,${0.08 * (1 - d / 100)})`
+            ctx.strokeStyle = `rgba(255,61,61,${0.08 * (1 - d / 80)})`
             ctx.lineWidth = 0.5
             ctx.moveTo(particles[i].x, particles[i].y)
             ctx.lineTo(particles[j].x, particles[j].y)
