@@ -1,24 +1,99 @@
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
-const FROM = process.env.RESEND_FROM_EMAIL ?? 'LeakCheck <onboarding@resend.dev>'
+const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL ?? 'LeakCheck <onboarding@resend.dev>'
+const SEND_ADDRESS = DEFAULT_FROM.match(/<(.+)>/)?.[1] ?? 'onboarding@resend.dev'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://leakcheck-three.vercel.app'
+const FONT = `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif`
 
+// User-supplied template text (Settings → Message Templates) gets rendered
+// into HTML emails — escape it so a customer's copy can't break the layout
+// or inject markup. Our own hardcoded default copy is trusted and skips this.
+function escapeHtml(s: string): string {
+  return s
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
+// A real, recognizable sender name (instead of a generic "LeakCheck" /
+// no-reply address) plus a working reply-to is the single biggest factor in
+// whether customers trust and open a dunning email instead of ignoring it
+// as spam. Name comes from the merchant's own Settings; falls back to
+// "LeakCheck" if they haven't set one. Strips header-injection characters
+// since this is free-text user input going straight into an email header.
+function senderDisplayName(senderName?: string | null): string {
+  return (senderName ?? '').replace(/[\r\n<>]/g, '').trim() || 'LeakCheck'
+}
+
+function buildFrom(senderName?: string | null): string {
+  return `${senderDisplayName(senderName)} <${SEND_ADDRESS}>`
+}
+
+// Table-based layout (not flex/grid divs) because Outlook desktop's Word
+// rendering engine ignores most modern CSS — tables are the one layout
+// primitive every email client still renders consistently.
+function lightWrapper(bodyHtml: string): string {
+  return `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 16px;font-family:${FONT};">
+  <tr><td align="center">
+    <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border-radius:16px;border:1px solid #e8e8ea;">
+      ${bodyHtml}
+    </table>
+  </td></tr>
+</table>`
+}
+
+export async function sendOperatorAlert(subject: string, message: string): Promise<void> {
+  const to = process.env.OPERATOR_ALERT_EMAIL
+  if (!to) return
+  const { error } = await resend.emails.send({
+    from: DEFAULT_FROM,
+    to,
+    subject: `[LeakCheck Alert] ${subject}`,
+    html: `<div style="background:#0a0a0a;padding:40px;font-family:${FONT};"><p style="color:#fff;white-space:pre-wrap;">${escapeHtml(message)}</p></div>`,
+  })
+  if (error) console.error('[resend] operator alert failed:', error.message)
+}
+
+// Sent by LeakCheck to the founder who just signed up — the recipient is a
+// LeakCheck user, so full brand identity (dark theme, logo dot) is correct
+// here, unlike the customer-facing recovery emails below.
 export async function sendWelcomeEmail(email: string): Promise<void> {
   const { error } = await resend.emails.send({
-    from: FROM,
+    from: DEFAULT_FROM,
     to: email,
     subject: 'Welcome to LeakCheck — connect Stripe in 2 clicks',
     html: `
-      <div style="background:#0a0a0a;padding:40px;font-family:sans-serif;">
-        <h1 style="color:#fff;font-size:22px;">Welcome to LeakCheck</h1>
-        <p style="color:#888;">You signed up with ${email}.</p>
-        <p style="color:#888;">Connect your Stripe account to see how much you're losing to failed payments.</p>
-        <a href="https://leakcheck-three.vercel.app/onboarding"
-           style="display:inline-block;background:#ff3d3d;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:16px;">
-          Connect Stripe →
-        </a>
-      </div>
-    `,
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;font-family:${FONT};">
+  <tr><td align="center">
+    <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;padding:48px 32px;">
+      <tr><td>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+          <tr>
+            <td style="padding-right:8px;"><div style="width:8px;height:8px;border-radius:50%;background:#ff3d3d;"></div></td>
+            <td><span style="color:#fff;font-size:15px;font-weight:700;letter-spacing:-0.01em;">LeakCheck</span></td>
+          </tr>
+        </table>
+        <h1 style="color:#fff;font-size:24px;font-weight:800;margin:0 0 16px;letter-spacing:-0.02em;line-height:1.25;">Welcome to LeakCheck</h1>
+        <p style="color:#999;font-size:14px;line-height:1.6;margin:0 0 12px;">You signed up with ${email}.</p>
+        <p style="color:#999;font-size:14px;line-height:1.6;margin:0 0 28px;">Connect your Stripe account to see exactly how much you're losing to failed payments — takes about 60 seconds, read-only access.</p>
+        <table role="presentation" cellpadding="0" cellspacing="0">
+          <tr><td style="background:#ff3d3d;border-radius:10px;">
+            <a href="${SITE_URL}/onboarding" style="display:inline-block;color:#fff;padding:14px 28px;text-decoration:none;font-weight:700;font-size:14px;">Connect Stripe →</a>
+          </td></tr>
+        </table>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:48px;border-top:1px solid #1a1a1a;">
+          <tr><td style="padding-top:20px;">
+            <p style="color:#555;font-size:12px;line-height:1.6;margin:0;">You're receiving this because you signed up at getleakcheck.com.</p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>`,
   })
   if (error) console.error('[resend] welcome email failed:', error.message)
 }
@@ -30,31 +105,135 @@ export type PaymentRecoveryProps = {
   failureReason: string
 }
 
+// Shared by all three recovery-sequence emails. The recipient is the
+// merchant's OWN customer, who has no relationship with LeakCheck — so the
+// "brand" on display here is the sender name the merchant configured (e.g.
+// "Acme Inc. Billing"), not LeakCheck. A loud LeakCheck logo on this email
+// would look like unrelated third-party spam to that recipient. LeakCheck
+// only appears as one small, unobtrusive footer line.
+function recoveryEmailBody(opts: {
+  heading: string
+  senderName?: string | null
+  customerName: string | null
+  formatted: string
+  failureReason: string
+  message: string
+  actionUrl: string
+  urgent: boolean
+}): string {
+  const name = senderDisplayName(opts.senderName)
+  const accent = opts.urgent ? '#ff3d3d' : '#111111'
+  return `
+      <tr><td style="padding:32px 32px 0;">
+        <p style="color:#8a8a8e;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin:0 0 20px;">${escapeHtml(name)}</p>
+        ${opts.urgent ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:14px;"><tr><td style="background:#fef2f2;border:1px solid #fecaca;border-radius:100px;padding:4px 12px;"><span style="color:#dc2626;font-size:11px;font-weight:700;">FINAL NOTICE</span></td></tr></table>` : ''}
+        <h1 style="color:#111;font-size:19px;font-weight:700;margin:0 0 16px;line-height:1.35;">${opts.heading}</h1>
+        <p style="color:#444;font-size:14px;line-height:1.6;margin:0 0 8px;">Hi ${opts.customerName ?? 'there'},</p>
+        <p style="color:#444;font-size:14px;line-height:1.6;margin:0 0 20px;">${opts.message}</p>
+      </td></tr>
+      <tr><td style="padding:0 32px 24px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #f0f0f0;border-radius:12px;">
+          <tr>
+            <td style="padding:16px 20px;">
+              <p style="color:#999;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin:0 0 4px;">Amount due</p>
+              <p style="color:#111;font-size:22px;font-weight:800;margin:0;">${opts.formatted}</p>
+            </td>
+            <td align="right" style="padding:16px 20px;">
+              <p style="color:#999;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin:0 0 4px;">Reason</p>
+              <p style="color:#555;font-size:13px;font-weight:600;margin:0;">${escapeHtml(opts.failureReason)}</p>
+            </td>
+          </tr>
+        </table>
+      </td></tr>
+      <tr><td style="padding:0 32px 32px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr><td align="center" style="background:${accent};border-radius:10px;">
+            <a href="${opts.actionUrl}" style="display:block;text-align:center;color:#fff;padding:14px 24px;text-decoration:none;font-weight:700;font-size:14px;">Update Payment Method →</a>
+          </td></tr>
+        </table>
+      </td></tr>
+      <tr><td style="background:#fafafa;border-top:1px solid #f0f0f0;border-radius:0 0 16px 16px;padding:16px 32px;">
+        <p style="color:#aaa;font-size:11px;line-height:1.5;margin:0;">Sent on behalf of ${escapeHtml(name)} via LeakCheck.</p>
+      </td></tr>`
+}
+
 export async function sendPaymentRecoveryEmail(
   to: string,
   props: PaymentRecoveryProps,
+  customMessage?: string,
+  sender?: { name?: string | null; replyTo?: string | null },
+  actionUrl?: string | null,
 ): Promise<void> {
   const formatted = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: props.currency.toUpperCase(),
   }).format(props.amount / 100)
 
+  const message = customMessage
+    ? escapeHtml(customMessage)
+    : `Your payment failed because: <strong>${escapeHtml(props.failureReason)}</strong>. Please update your payment method to continue your service.`
+
   const { error } = await resend.emails.send({
-    from: FROM,
+    from: buildFrom(sender?.name),
     to,
+    ...(sender?.replyTo ? { replyTo: sender.replyTo } : {}),
     subject: `Payment failed — action required (${formatted})`,
-    html: `
-      <div style="background:#fff;padding:40px;font-family:sans-serif;">
-        <h1 style="color:#111;font-size:20px;">Your payment of ${formatted} failed</h1>
-        <p style="color:#555;">Hi ${props.customerName ?? 'there'},</p>
-        <p style="color:#555;">Your payment failed because: <strong>${props.failureReason}</strong>.</p>
-        <p style="color:#555;">Please update your payment method to continue your service.</p>
-        <a href="https://billing.stripe.com"
-           style="display:inline-block;background:#111;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:16px;">
-          Update Payment Method →
-        </a>
-      </div>
-    `,
+    html: lightWrapper(recoveryEmailBody({
+      heading: `Your payment of ${formatted} failed`,
+      senderName: sender?.name,
+      customerName: props.customerName,
+      formatted,
+      failureReason: props.failureReason,
+      message,
+      actionUrl: actionUrl || 'https://billing.stripe.com',
+      urgent: false,
+    })),
   })
   if (error) console.error('[resend] recovery email failed:', error.message)
+}
+
+// Steps 2 (day-3 reminder) and 3 (day-7 final notice) of the recovery
+// sequence. Step 1 is sendPaymentRecoveryEmail, sent at first-detection time.
+const SEQUENCE_COPY = {
+  2: { subjectPrefix: 'Reminder', heading: 'Still unable to charge your card' },
+  3: { subjectPrefix: 'Final notice', heading: 'Your service will be interrupted' },
+} as const
+
+export async function sendRecoverySequenceEmail(
+  to: string,
+  step: 2 | 3,
+  props: PaymentRecoveryProps,
+  customMessage?: string,
+  sender?: { name?: string | null; replyTo?: string | null },
+  actionUrl?: string | null,
+): Promise<void> {
+  const formatted = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: props.currency.toUpperCase(),
+  }).format(props.amount / 100)
+
+  const copy = SEQUENCE_COPY[step]
+  const message = customMessage
+    ? escapeHtml(customMessage)
+    : (step === 2
+      ? 'We tried again and your payment is still failing. Please update your payment method to avoid an interruption to your service.'
+      : 'This is our final reminder — your payment has been failing for over a week. Please update your payment method now to keep your service active.')
+
+  const { error } = await resend.emails.send({
+    from: buildFrom(sender?.name),
+    to,
+    ...(sender?.replyTo ? { replyTo: sender.replyTo } : {}),
+    subject: `${copy.subjectPrefix}: payment failed — action required (${formatted})`,
+    html: lightWrapper(recoveryEmailBody({
+      heading: copy.heading,
+      senderName: sender?.name,
+      customerName: props.customerName,
+      formatted,
+      failureReason: props.failureReason,
+      message,
+      actionUrl: actionUrl || 'https://billing.stripe.com',
+      urgent: step === 3,
+    })),
+  })
+  if (error) console.error(`[resend] sequence email (step ${step}) failed:`, error.message)
 }

@@ -38,7 +38,7 @@ const TESTIMONIALS = [
 
 const TRUST_ITEMS = [
   {
-    label: 'Read-only Stripe OAuth',
+    label: 'Never charges without consent',
     icon: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
   },
   {
@@ -109,6 +109,10 @@ export default function UpgradePage() {
     } catch (err) {
       setCheckoutError(err instanceof Error ? err.message : 'Something went wrong. Try again.')
       setCheckoutLoading(null)
+      // The error banner lives near the top of the page, but the button that
+      // triggers it (e.g. the Lifetime Deal banner further down) can be well
+      // out of view — without this, clicking it looks like nothing happened.
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
 
@@ -149,11 +153,11 @@ export default function UpgradePage() {
         <div className="your-number">
           <div className="yn-left">
             <div className="yn-label">You lost this month</div>
-            <div className="yn-amount">${lostAmt.toLocaleString()}</div>
+            <div className="yn-amount">${lostAmt.toLocaleString('en-US')}</div>
             <div className="yn-sub">in failed payments that could be recovered</div>
           </div>
           <div className="yn-right">
-            <div className="yn-roi">${roiAmt.toLocaleString()}/mo</div>
+            <div className="yn-roi">${roiAmt.toLocaleString('en-US')}/mo</div>
             <div className="yn-roi-label">
               est. monthly recovery<br />with LeakCheck Pro
             </div>
@@ -184,7 +188,7 @@ export default function UpgradePage() {
           </div>
           <div className="sp-divider" />
           <div className="sp-item">
-            🔒 <strong style={{ color: 'var(--tx)' }}>SOC2</strong> compliant · Read-only OAuth
+            🔒 <strong style={{ color: 'var(--tx)' }}>SOC2</strong> compliant · Never charges without consent
           </div>
         </div>
 
@@ -236,7 +240,9 @@ export default function UpgradePage() {
             <div className="pc-div" />
             <div className="pc-f"><div className="pc-ck">✓</div>Everything in Free</div>
             <div className="pc-f"><div className="pc-ck">✓</div>Smart retry logic by failure type</div>
-            <div className="pc-f"><div className="pc-ck">✓</div>3-email recovery sequence</div>
+            <div className="pc-f"><div className="pc-ck">✓</div>Email + SMS recovery sequence</div>
+            <div className="pc-f"><div className="pc-ck">✓</div>Custom templates — write your own or generate with AI</div>
+            <div className="pc-f"><div className="pc-ck">✓</div>Sent from your name, replies go to your inbox</div>
             <div className="pc-f"><div className="pc-ck">✓</div>Real-time Slack + email alerts</div>
             <div className="pc-f"><div className="pc-ck">✓</div>Monthly recovery report</div>
             <div className="pc-f"><div className="pc-ck">✓</div>Priority support</div>

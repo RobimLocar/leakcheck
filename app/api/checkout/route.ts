@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { stripeGet, stripePost } from '@/lib/stripe/connectedAccountApi'
 import { type NextRequest, NextResponse } from 'next/server'
 
 type Plan = 'monthly' | 'lifetime'
@@ -8,29 +9,6 @@ const PLAN_CONFIG = {
   lifetime: { name: 'LeakCheck Lifetime', amount: 14900 },
 } as const
 
-// ── Stripe REST helpers ───────────────────────────────────────────────────────
-
-async function stripeGet(path: string, key: string) {
-  const res = await fetch(`https://api.stripe.com${path}`, {
-    headers: { Authorization: `Bearer ${key}` },
-    cache: 'no-store',
-  })
-  return res.json()
-}
-
-async function stripePost(path: string, params: Record<string, string>, key: string) {
-  const res = await fetch(`https://api.stripe.com${path}`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams(params),
-    cache: 'no-store',
-  })
-  return res.json()
-}
-
 // ── Get or create a Stripe product + price for the given plan ─────────────────
 // Uses metadata[leakcheck_plan] as the stable lookup key so we never create
 // duplicates even across cold starts.
@@ -39,12 +17,13 @@ async function getOrCreatePrice(plan: Plan, key: string): Promise<string> {
   const { name, amount } = PLAN_CONFIG[plan]
 
   // 1. Find existing product
-  const productQuery = new URLSearchParams({
-    'metadata[leakcheck_plan]': plan,
-    active: 'true',
-    limit: '1',
-  })
-  const productList = await stripeGet(`/v1/products?${productQuery}`, key)
+  // Stripe's regular List Products endpoint does NOT support filtering by
+  // metadata via query params (it's silently ignored) — must use the Search
+  // API instead, which does. Using List here previously meant this almost
+  // never found the existing product and created a fresh duplicate on every
+  // checkout.
+  const searchQuery = `active:'true' AND metadata['leakcheck_plan']:'${plan}'`
+  const productList = await stripeGet(`/v1/products/search?query=${encodeURIComponent(searchQuery)}&limit=1`, key)
 
   let productId: string
   if (productList.data?.length > 0) {
@@ -96,6 +75,21 @@ export async function POST(request: NextRequest) {
   const plan = body.plan as Plan
   if (plan !== 'monthly' && plan !== 'lifetime') {
     return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
+  }
+
+  // Don't let an already-Pro user accidentally start a second subscription
+  // (e.g. clicking "Start Recovery" again from /upgrade).
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_pro')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (profile?.is_pro) {
+    return NextResponse.json(
+      { error: "You're already on the Pro plan. Manage your subscription from Settings." },
+      { status: 400 },
+    )
   }
 
   const secretKey = process.env.STRIPE_SECRET_KEY!

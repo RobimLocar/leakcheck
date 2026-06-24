@@ -178,6 +178,9 @@ nav {
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--bd);
 }
+/* nav is fixed (~76px tall), so anchor-scrolled sections need top margin or
+   their heading/first card ends up hidden underneath it. */
+#how-it-works, #pricing { scroll-margin-top: 90px; }
 .logo { font-family: var(--D); font-size: 17px; font-weight: 800; color: var(--tx); display: flex; align-items: center; gap: 9px; letter-spacing: -.02em; }
 .pip { width: 7px; height: 7px; border-radius: 50%; background: var(--red); box-shadow: 0 0 10px var(--red); animation: pip 2.4s ease-in-out infinite; flex-shrink: 0; }
 .nav-links { display: flex; align-items: center; gap: 28px; list-style: none; }
@@ -358,15 +361,15 @@ nav {
 .tc-b b { color: var(--red); font-weight: 600; }
 .tc-amt { display: inline-block; margin-top: 9px; font-size: 10.5px; font-weight: 600; color: var(--grn); background: var(--gA); border: 1px solid rgba(34,197,94,.16); padding: 2px 8px; border-radius: 100px; }
 .tscene { position: relative; height: 460px; border: 1px solid var(--bd); border-radius: 18px; overflow: hidden; margin-top: 56px; background: var(--s1); }
-.t3d { perspective: 320px; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-.tinner { display: flex; flex-direction: row; gap: 12px; align-items: flex-start; transform: translateX(-60px) translateY(8px) translateZ(-60px) rotateX(17deg) rotateY(-8deg) rotateZ(17deg); transform-style: preserve-3d; }
+.t3d { perspective: 900px; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.tinner { display: flex; flex-direction: row; gap: 12px; align-items: flex-start; transform: translateX(-30px) translateY(4px) translateZ(-30px) rotateX(8deg) rotateY(-4deg) rotateZ(3deg); transform-style: preserve-3d; }
 .tft { position: absolute; left: 0; right: 0; top: 0; height: 32%; background: linear-gradient(to bottom, var(--s1), transparent); pointer-events: none; z-index: 2; }
 .tfb { position: absolute; left: 0; right: 0; bottom: 0; height: 32%; background: linear-gradient(to top, var(--s1), transparent); pointer-events: none; z-index: 2; }
 .tfl { position: absolute; top: 0; bottom: 0; left: 0; width: 18%; background: linear-gradient(to right, var(--s1), transparent); pointer-events: none; z-index: 2; }
 .tfr { position: absolute; top: 0; bottom: 0; right: 0; width: 18%; background: linear-gradient(to left, var(--s1), transparent); pointer-events: none; z-index: 2; }
 
 /* ── PRICING ── */
-.pg { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 840px; margin-top: 56px; }
+.pg { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 840px; margin: 56px auto 0; }
 .pc { background: var(--s2); border: 1px solid var(--bd); border-radius: 18px; padding: 36px; position: relative; transition: border-color .25s, transform .25s, box-shadow .25s; }
 .pc:hover { border-color: var(--bd2); transform: translateY(-3px); box-shadow: 0 24px 48px rgba(0,0,0,.4); }
 .pc.hot { border-color: rgba(255,61,61,.3); background: linear-gradient(140deg, rgba(255,61,61,.06), var(--s2)); }
@@ -385,14 +388,14 @@ nav {
 .pc-cta.red { background: var(--red); color: #fff; border: none; }
 .pc-cta.red:hover { box-shadow: 0 0 28px rgba(255,61,61,.4); opacity: .92; }
 .pc-roi { margin-top: 12px; text-align: center; font-size: 12.5px; color: var(--grn); font-weight: 300; }
-.ltd { margin-top: 20px; max-width: 840px; padding: 18px 22px; background: var(--s2); border: 1px solid var(--bd); border-radius: 13px; display: flex; align-items: center; justify-content: space-between; gap: 16px; transition: border-color .2s; }
+.ltd { margin: 20px auto 0; max-width: 840px; padding: 18px 22px; background: var(--s2); border: 1px solid var(--bd); border-radius: 13px; display: flex; align-items: center; justify-content: space-between; gap: 16px; transition: border-color .2s; }
 .ltd:hover { border-color: var(--bd2); }
 .ltd-t { font-size: 14px; font-weight: 500; color: var(--tx); margin-bottom: 3px; }
 .ltd-d { font-size: 13px; color: var(--tx2); font-weight: 300; }
 .ltd-d strong { color: var(--tx); }
 
 /* ── FAQ ── */
-.faq { max-width: 700px; margin-top: 52px; }
+.faq { max-width: 700px; margin: 52px auto 0; }
 .fi { border-bottom: 1px solid var(--bd); }
 .fq { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 0; cursor: pointer; font-size: 15px; font-weight: 500; color: var(--tx); transition: color .2s; user-select: none; }
 .fq:hover { color: var(--red); }
@@ -449,7 +452,7 @@ footer { border-top: 1px solid var(--bd); background: var(--s1); padding: 28px 4
   .ltd { flex-direction: column; align-items: flex-start; }
   .db-body { grid-template-columns: 1fr; }
   .db-side { display: none; }
-  .tinner { transform: translateX(-30px) translateY(5px) translateZ(-40px) rotateX(14deg) rotateY(-6deg) rotateZ(14deg); }
+  .tinner { transform: translateX(-15px) translateY(3px) translateZ(-20px) rotateX(6deg) rotateY(-3deg) rotateZ(2deg); }
   footer { flex-wrap: wrap; padding: 24px 28px; }
 }
 
@@ -483,7 +486,7 @@ footer { border-top: 1px solid var(--bd); background: var(--s1); padding: 28px 4
   .pad { padding: 52px 18px; }
   .sw .pad { padding: 52px 18px; }
   .tscene { height: 340px; }
-  .tinner { transform: translateX(-16px) translateY(4px) translateZ(-20px) rotateX(10deg) rotateY(-5deg) rotateZ(10deg); gap: 8px; }
+  .tinner { transform: translateX(-8px) translateY(2px) translateZ(-10px) rotateX(4deg) rotateY(-2deg) rotateZ(1deg); gap: 8px; }
   #tc3, #tc4 { display: none; }
   .tc { width: 158px; padding: 12px; }
   .tc-b { font-size: 11.5px; }
@@ -646,6 +649,7 @@ canvas#chart { width: 100%; height: 140px; display: block; }
 .recover-btn.active { background: var(--red); color: #fff; }
 .recover-btn.active:hover { opacity: .85; box-shadow: 0 0 12px rgba(255,61,61,.3); }
 .recover-btn.done { background: var(--gA); color: var(--grn); border: 1px solid rgba(34,197,94,.2); }
+.recover-btn.status { background: transparent; color: var(--tx3); border: 1px dashed var(--bd); cursor: default; }
 
 /* ── EMPTY STATE ── */
 .empty { text-align: center; padding: 48px 20px; color: var(--tx3); }

@@ -27,7 +27,7 @@ export default function TermsPage() {
           },
           {
             title: '2. Description of service',
-            body: `LeakCheck is a SaaS tool that connects to your Stripe account via OAuth and displays a dashboard of failed payments. The Free plan provides read-only visibility. The Recovery plan ($29/month) and Lifetime plan ($149 one-time) provide additional automation features.
+            body: `LeakCheck is a SaaS tool that connects to your Stripe account via OAuth and displays a dashboard of failed payments. Stripe's own platform policy currently requires every OAuth connection to request read and write access — we cannot request a narrower grant ourselves. On the Free plan, that access is only ever used to read data; we never initiate a charge. The Recovery plan ($29/month) and Lifetime plan ($149 one-time) can optionally use that same connection to retry failed charges automatically, and only once you separately enable Auto-Recovery.
 
 We reserve the right to modify or discontinue any feature of the Service at any time with reasonable notice.`,
           },

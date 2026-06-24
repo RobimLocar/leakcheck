@@ -26,7 +26,7 @@ export default function PrivacyPage() {
             body: `We collect the minimum data necessary to provide the service:
 
 • Email address — used for authentication and to send you account-related emails (welcome, payment recovery notifications).
-• Stripe OAuth token — a read-only access token obtained through Stripe Connect OAuth. This token allows us to read your invoice, charge, and customer data from Stripe. We never access your full card data or initiate any financial transactions.
+• Stripe OAuth token — an access token obtained through Stripe Connect OAuth. This token allows us to read your invoice, charge, and customer data from Stripe. Stripe's platform policy currently requires every connection to grant read and write access (a narrower read-only grant requires a separate approval from Stripe, which we don't have yet), but on the Free plan that token is only ever used to read data — we never initiate a financial transaction unless you're on the Recovery plan and have separately turned on Auto-Recovery. We never access your full card data.
 • Failed payment data — invoice IDs, customer names, customer emails, amounts, currencies, and failure reasons fetched from your Stripe account and stored in our database for display in your dashboard.
 • Usage data — basic analytics about how you use the service (page views, feature usage).`,
           },

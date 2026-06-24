@@ -12,7 +12,7 @@
  *
  *   1. Go to https://dashboard.stripe.com/webhooks
  *   2. Click "Add endpoint"
- *   3. Endpoint URL: https://leakcheck-three.vercel.app/api/webhooks/stripe
+ *   3. Endpoint URL: <your production domain>/api/webhooks/stripe
  *   4. Under "Select events", add:
  *        ✓ checkout.session.completed
  *        ✓ customer.subscription.deleted
@@ -38,7 +38,7 @@
  *                                    lifetime users are unaffected — no subscription exists)
  */
 
-export const WEBHOOK_ENDPOINT = 'https://leakcheck-three.vercel.app/api/webhooks/stripe'
+export const WEBHOOK_ENDPOINT = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://leakcheck-three.vercel.app'}/api/webhooks/stripe`
 
 export const WEBHOOK_EVENTS = [
   'checkout.session.completed',

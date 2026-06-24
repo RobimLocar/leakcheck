@@ -58,7 +58,8 @@ const FREE_FEATURES = [
 const PRO_FEATURES = [
   'Everything in Free',
   'Smart retry logic by failure type',
-  '3-email recovery sequence',
+  'Email + SMS recovery sequence',
+  'Write your own message templates — or generate with AI',
   'Real-time Slack + email alerts',
   'Monthly recovery report',
 ]
@@ -70,7 +71,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Do you store my Stripe data?',
-    a: 'We use OAuth to connect in read-only mode for the dashboard. For recovery features, limited write access is needed to trigger retries only. We never store full card data — Stripe handles that. Encrypted at rest and in transit.',
+    a: "We only read data on the free dashboard — that's all it ever needs, and we never initiate a charge unless you've separately turned on Auto-Recovery. (Stripe's own platform rules currently require every connection to technically grant write access too; you can always see the exact access level in Settings.) We never store full card data — Stripe handles that.",
   },
   {
     q: 'How much can I realistically recover?',
@@ -81,8 +82,12 @@ const FAQ_ITEMS = [
     a: 'Currently LeakCheck connects directly to Stripe. Gumroad and Lemon Squeezy are on the roadmap for Q3 2025. Substack uses Stripe under the hood but doesn\'t expose the API directly.',
   },
   {
+    q: 'Can I customize the recovery messages?',
+    a: 'Yes — edit the SMS and email copy for every step yourself, or describe your product and let AI draft it for you. Recovery emails also go out under your own name with replies routed to your real inbox, not a no-reply address.',
+  },
+  {
     q: 'What if I want to cancel?',
-    a: 'Cancel anytime with one click. No questions, no fees, no guilt emails. Your free dashboard stays active forever even after canceling the Recovery plan.',
+    a: "Cancel anytime from Settings — one click opens Stripe's own billing portal, no emails, no calls. Your free dashboard stays active forever even after canceling the Recovery plan.",
   },
 ]
 
@@ -109,7 +114,10 @@ function TestimonialCard({ t }: { t: Testimonial }) {
 
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false)
-  const [openFaq, setOpenFaq] = useState<number>(0)
+  // Starts with nothing open — an item open by default made the first
+  // question collapse (and its answer vanish) on the very first click,
+  // since that click toggled it closed instead of opening it.
+  const [openFaq, setOpenFaq] = useState<number>(-1)
   const [mrr, setMrr] = useState(5000)
   const [counterVal, setCounterVal] = useState(0)
   const [counterFill, setCounterFill] = useState(0)
@@ -257,17 +265,35 @@ export default function LandingPage() {
         if (cur >= target) clearInterval(iv)
       }, 16)
     }
+    const reveal = (el: Element) => {
+      if (el.classList.contains('vis')) return
+      el.classList.add('vis')
+      const mv = el.querySelector('[data-target]')
+      if (mv) animMetric(mv)
+    }
+
+    // Large rootMargin + threshold 0 catches elements well before/after the
+    // strict viewport, so a fast scroll or a scrollIntoView() jump (e.g. the
+    // nav links) can't skip past one without the observer ever firing —
+    // that used to leave whole sections (FAQ items, pricing cards) stuck at
+    // opacity:0 forever.
     const ro = new IntersectionObserver(entries => {
       entries.forEach(e => {
         if (!e.isIntersecting) return
-        e.target.classList.add('vis')
+        reveal(e.target)
         ro.unobserve(e.target)
-        const mv = e.target.querySelector('[data-target]')
-        if (mv) animMetric(mv)
       })
-    }, { threshold: 0.1 })
-    document.querySelectorAll('.rv').forEach(el => ro.observe(el))
-    return () => ro.disconnect()
+    }, { threshold: 0, rootMargin: '400px 0px 400px 0px' })
+    const targets = document.querySelectorAll('.rv')
+    targets.forEach(el => ro.observe(el))
+
+    // Belt-and-suspenders: whatever the observer missed, reveal anyway once
+    // the page has settled. Nothing should stay invisible forever.
+    const fallback = setTimeout(() => {
+      targets.forEach(reveal)
+    }, 2500)
+
+    return () => { ro.disconnect(); clearTimeout(fallback) }
   }, [])
 
   // Bento bar animation
@@ -334,7 +360,6 @@ export default function LandingPage() {
         <ul className="nav-links">
           <li><a href="#how-it-works" onClick={e => { e.preventDefault(); scrollTo('how-it-works') }}>How it works</a></li>
           <li><a href="#pricing" onClick={e => { e.preventDefault(); scrollTo('pricing') }}>Pricing</a></li>
-          <li><a href="#">Blog<span className="nav-new">New</span></a></li>
         </ul>
         <Link href="/onboarding" className="btn btn-w" style={{ fontSize: '14px', padding: '10px 20px' }}>
           Connect Stripe — Free
@@ -347,7 +372,6 @@ export default function LandingPage() {
       <div className={`drawer${menuOpen ? ' open' : ''}`}>
         <a href="#how-it-works" onClick={e => { e.preventDefault(); closeMenu(); scrollTo('how-it-works') }}>How it works</a>
         <a href="#pricing" onClick={e => { e.preventDefault(); closeMenu(); scrollTo('pricing') }}>Pricing</a>
-        <a href="#" onClick={closeMenu}>Blog</a>
         <Link href="/onboarding" className="btn btn-r" onClick={closeMenu}>Connect Stripe — Free →</Link>
       </div>
 
@@ -375,7 +399,7 @@ export default function LandingPage() {
 
           <div className="live-counter rv d2">
             <div className="counter-label">You&apos;ve lost this month to failed payments</div>
-            <div className="counter-val">${counterVal.toLocaleString()}</div>
+            <div className="counter-val">${counterVal.toLocaleString('en-US')}</div>
             <div className="counter-sub">Based on industry averages for your MRR size</div>
             <div className="counter-bar">
               <div className="counter-fill" style={{ width: `${counterFill}%` }} />
@@ -391,7 +415,7 @@ export default function LandingPage() {
             </Link>
             <a href="#how-it-works" className="btn btn-o btn-full" onClick={e => { e.preventDefault(); scrollTo('how-it-works') }}>See how it works</a>
           </div>
-          <p className="hero-note rv d4">No migration · No setup · Read-only access · Cancel anytime</p>
+          <p className="hero-note rv d4">No migration · No setup · Never charges without consent · Cancel anytime</p>
 
           {/* Dashboard preview */}
           <div className="db-wrap rv">
@@ -509,12 +533,13 @@ export default function LandingPage() {
                 <div className="bc-num">01</div>
                 <div className="bc-icon">🔗</div>
                 <div className="bc-t">Connect Stripe</div>
-                <p className="bc-d">OAuth in 2 clicks. Read-only access. No credentials stored, no data moved, no risk.</p>
+                <p className="bc-d">OAuth in 2 clicks. Never charges without consent. No credentials stored, no risk.</p>
                 <div className="bc-demo">
                   <div style={{ fontSize: '11px', color: 'var(--tx3)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '.06em' }}>OAuth Flow</div>
                   {[
                     { label: 'Authorization', val: '✓ Granted', color: 'var(--grn)' },
-                    { label: 'Access level', val: 'Read-only', color: 'var(--tx2)' },
+                    { label: 'Access level', val: 'Read & write', color: 'var(--tx2)' },
+                    { label: 'Charges initiated', val: 'Only if you enable Auto-Recovery', color: 'var(--tx2)' },
                     { label: 'Setup time', val: '60 seconds', color: 'var(--grn)' },
                   ].map(row => (
                     <div className="bc-demo-row" key={row.label}>
@@ -555,7 +580,7 @@ export default function LandingPage() {
                 <div className="bc-num">03</div>
                 <div className="bc-icon">⚡</div>
                 <div className="bc-t">Recover Automatically</div>
-                <p className="bc-d">Smart retries + 3-email recovery sequence. Most founders recover day one.</p>
+                <p className="bc-d">Smart retries + email & SMS recovery sequence, in your own words — write it yourself or let AI draft it. Most founders recover day one.</p>
                 <div className="bc-recover" id="bentoRecover">
                   {recoveryItems.map((item, i) => (
                     <div key={i} className={`bc-r-item${item.recovered ? ' recovered' : ''}`}>
@@ -591,11 +616,11 @@ export default function LandingPage() {
                 <div className="bc-calc">
                   <div className="bc-calc-row">
                     <span className="bc-calc-label">Involuntary churn (30%)</span>
-                    <span className="bc-calc-val">${Math.round(inv).toLocaleString()}</span>
+                    <span className="bc-calc-val">${Math.round(inv).toLocaleString('en-US')}</span>
                   </div>
                   <div className="bc-calc-row">
                     <span className="bc-calc-label">Recovery rate (85%)</span>
-                    <span className="bc-calc-val">${Math.round(rec).toLocaleString()}</span>
+                    <span className="bc-calc-val">${Math.round(rec).toLocaleString('en-US')}</span>
                   </div>
                   <div className="bc-calc-row">
                     <span className="bc-calc-label">LeakCheck cost</span>
@@ -603,7 +628,7 @@ export default function LandingPage() {
                   </div>
                   <div className="bc-calc-row">
                     <span className="bc-calc-label" style={{ fontWeight: 500, color: 'var(--tx)' }}>Your net recovery</span>
-                    <span className="bc-calc-val" style={{ fontSize: '22px', color: 'var(--grn)' }}>${Math.round(net).toLocaleString()}</span>
+                    <span className="bc-calc-val" style={{ fontSize: '22px', color: 'var(--grn)' }}>${Math.round(net).toLocaleString('en-US')}</span>
                   </div>
                 </div>
               </div>
@@ -652,7 +677,7 @@ export default function LandingPage() {
               {FREE_FEATURES.map(f => (
                 <div key={f} className="pc-f"><div className="pc-ck">✓</div>{f}</div>
               ))}
-              <Link href="/upgrade" className="pc-cta out" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>Connect Stripe — Free</Link>
+              <Link href="/onboarding" className="pc-cta out" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>Connect Stripe — Free</Link>
             </div>
             <div className="pc hot rv d1">
               <div className="pc-badge">PAYS FOR ITSELF IN 3 DAYS</div>
@@ -683,9 +708,16 @@ export default function LandingPage() {
           <div className="inn">
             <div className="label rv">FAQ</div>
             <h2 className="h2 rv d1">Common questions.</h2>
+            {/* No "rv" scroll-reveal class on the rows below, on purpose:
+                the reveal effect adds "vis" by mutating the DOM directly
+                outside React, and clicking a question to open/close it
+                re-renders that div with a className React DOES control (the
+                "open" toggle) — React's reconciliation then overwrites the
+                whole className and wipes the externally-added "vis", leaving
+                the row stuck invisible after the first click. */}
             <div className="faq">
               {FAQ_ITEMS.map((item, idx) => (
-                <div key={idx} className={`fi rv${openFaq === idx ? ' open' : ''}`}>
+                <div key={idx} className={`fi${openFaq === idx ? ' open' : ''}`}>
                   <div className="fq" onClick={() => setOpenFaq(openFaq === idx ? -1 : idx)}>
                     {item.q}
                     <svg className="fi-ic" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -718,10 +750,10 @@ export default function LandingPage() {
                 <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
             </Link>
-            <Link href="/dashboard" className="btn btn-o">See the demo</Link>
+            <a href="#how-it-works" className="btn btn-o" onClick={e => { e.preventDefault(); scrollTo('how-it-works') }}>See how it works</a>
           </div>
           <p className="rv" style={{ marginTop: '18px', fontSize: '13px', color: 'var(--tx3)', textAlign: 'center' }}>
-            No credit card · No migration · Read-only Stripe access
+            No credit card · No migration · Never charges without consent
           </p>
         </div>
       </div>
@@ -732,11 +764,8 @@ export default function LandingPage() {
         <ul className="flinks">
           <li><Link href="/privacy">Privacy</Link></li>
           <li><Link href="/terms">Terms</Link></li>
-          <li><a href="https://leakcheck-three.vercel.app" target="_blank" rel="noopener noreferrer">Status</a></li>
-          <li><a href="https://twitter.com" target="_blank" rel="noopener noreferrer">Twitter / X</a></li>
-          <li><Link href="/dashboard">Changelog</Link></li>
         </ul>
-        <div className="fn">© 2025 LeakCheck · Built for indie founders</div>
+        <div className="fn">© {new Date().getFullYear()} LeakCheck · Built for indie founders</div>
       </footer>
     </>
   )
