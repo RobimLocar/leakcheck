@@ -471,6 +471,11 @@ const MessageTemplatesCard = ({
       </div>
     </div>
     <div style={{ padding: '8px 20px 20px' }}>
+      {!senderName.trim() && (
+        <div style={{ marginBottom: '14px', padding: '10px 14px', background: 'rgba(245,158,11,.07)', border: '1px solid rgba(245,158,11,.3)', borderRadius: '8px', fontSize: '12px', color: '#f59e0b' }}>
+          ⚠️ Nenhum nome de remetente configurado — os emails de recuperação saem como &ldquo;LeakCheck&rdquo;. Configure seu nome de marca no campo abaixo antes de enviar.
+        </div>
+      )}
       <div style={{ padding: '14px 0', borderBottom: '1px solid var(--bd)' }}>
         <label style={{ fontSize: '11px', color: 'var(--tx3)', display: 'block', marginBottom: '4px' }}>
           ✨ Generate with AI <span style={{ color: 'var(--tx3)', fontWeight: 400 }}>— describe your product, review the draft below, then edit and save</span>

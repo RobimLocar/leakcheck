@@ -83,6 +83,7 @@ function OnboardingContent() {
     if (step !== 2) return
 
     const timers: ReturnType<typeof setTimeout>[] = []
+    let pollCancelled = false
 
     SCAN_SEQUENCE.forEach((s, i) => {
       timers.push(
@@ -101,22 +102,33 @@ function OnboardingContent() {
     timers.push(setTimeout(() => setScanFill(100), 5000))
     timers.push(setTimeout(() => {
       setStep(3)
-      // Busca dados reais
+      // Poll the DB every 1.5s until data arrives — the background sync may
+      // still be writing when the animation completes, so a single read at
+      // this exact moment often returns 0 even when invoices exist.
       const supabase = createClient()
-      supabase
-        .from('failed_payments')
-        .select('amount, status')
-        .eq('status', 'open')
-        .then(({ data }) => {
-          if (data && data.length > 0) {
-            const total = data.reduce((sum, p) => sum + p.amount, 0)
-            setRealAmount(Math.round(total / 100))
-            setRealCount(data.length)
-          }
-        })
+      let attempts = 0
+      const poll = async () => {
+        if (pollCancelled) return
+        const { data } = await supabase
+          .from('failed_payments')
+          .select('amount, status')
+          .eq('status', 'open')
+        if (pollCancelled) return
+        if (data && data.length > 0) {
+          setRealAmount(Math.round(data.reduce((s, p) => s + p.amount, 0) / 100))
+          setRealCount(data.length)
+          return
+        }
+        attempts++
+        if (attempts < 10) timers.push(setTimeout(poll, 1500))
+      }
+      poll()
     }, 5400))
 
-    return () => timers.forEach(clearTimeout)
+    return () => {
+      pollCancelled = true
+      timers.forEach(clearTimeout)
+    }
   }, [step])
 
   const dotClass = (n: number) => {

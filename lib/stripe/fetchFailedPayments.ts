@@ -50,27 +50,37 @@ async function listInvoices(
   status: 'open' | 'uncollectible',
   sinceUnix: number
 ): Promise<StripeInvoice[]> {
-  const params = new URLSearchParams()
-  params.set('status', status)
-  params.set('created[gte]', String(sinceUnix))
-  params.set('limit', '100')
-  // Expand the charge object so we get failure_code without extra round-trips
-  params.append('expand[]', 'data.charge')
+  const results: StripeInvoice[] = []
+  let startingAfter: string | undefined
 
-  const res = await fetch(`https://api.stripe.com/v1/invoices?${params}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  })
+  for (;;) {
+    const params = new URLSearchParams()
+    params.set('status', status)
+    params.set('created[gte]', String(sinceUnix))
+    params.set('limit', '100')
+    params.append('expand[]', 'data.charge')
+    if (startingAfter) params.set('starting_after', startingAfter)
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    const msg = `Stripe ${status} invoices error ${res.status}: ${body?.error?.message ?? res.statusText}`
-    console.error('[fetchFailedPayments]', msg)
-    throw new Error(msg)
+    const res = await fetch(`https://api.stripe.com/v1/invoices?${params}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      const msg = `Stripe ${status} invoices error ${res.status}: ${body?.error?.message ?? res.statusText}`
+      console.error('[fetchFailedPayments]', msg)
+      throw new Error(msg)
+    }
+
+    const list: StripeListResponse<StripeInvoice> = await res.json()
+    results.push(...list.data)
+
+    if (!list.has_more || list.data.length === 0) break
+    startingAfter = list.data[list.data.length - 1].id
   }
 
-  const list: StripeListResponse<StripeInvoice> = await res.json()
-  console.log(`[fetchFailedPayments] ${status} invoices fetched:`, list.data.length, 'has_more:', list.has_more)
-  return list.data
+  console.log(`[fetchFailedPayments] ${status} invoices fetched total:`, results.length)
+  return results
 }
 
 export async function fetchFailedPayments(
