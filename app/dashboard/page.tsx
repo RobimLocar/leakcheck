@@ -835,6 +835,31 @@ export default function DashboardPage() {
     return () => { if (syncResultTimer.current) clearTimeout(syncResultTimer.current) }
   }, [])
 
+  // Fire Meta Pixel Purchase event on successful checkout redirect.
+  // Stripe docs recommend firing on the success page (this dashboard with
+  // ?upgraded=true) rather than server-side, so the browser cookie is present
+  // and the event is attributed to the correct ad click.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('upgraded') !== 'true') return
+    const plan = params.get('plan')
+    const value = plan === 'lifetime' ? 149 : 29
+    const contentName = plan === 'lifetime' ? 'LeakCheck Lifetime' : 'LeakCheck Recovery Monthly'
+    if ((window as any).fbq) {
+      ;(window as any).fbq('track', 'Purchase', {
+        value,
+        currency: 'USD',
+        content_name: contentName,
+        content_type: 'product',
+      })
+    }
+    // Remove params from URL so a page refresh doesn't double-fire the event
+    const clean = new URL(window.location.href)
+    clean.searchParams.delete('upgraded')
+    clean.searchParams.delete('plan')
+    window.history.replaceState({}, '', clean.toString())
+  }, [])
+
   // ── Derived data ───────────────────────────────────────────────────────────
 
   const periodDays = period === '7d' ? 7 : period === '30d' ? 30 : 90

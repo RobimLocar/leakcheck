@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     mode: plan === 'monthly' ? 'subscription' : 'payment',
     'line_items[0][price]': priceId,
     'line_items[0][quantity]': '1',
-    success_url: `${origin}/dashboard?upgraded=true`,
+    success_url: `${origin}/dashboard?upgraded=true&plan=${plan}`,
     cancel_url: `${origin}/upgrade`,
     'metadata[user_id]': user.id,
     'metadata[plan]': plan,
