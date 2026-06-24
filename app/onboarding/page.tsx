@@ -44,10 +44,38 @@ function OnboardingContent() {
   useEffect(() => {
     if (searchParams.get('connected') === 'true') {
       setStep(2)
+      // Meta Pixel: CompleteRegistration = Stripe connected (free tier)
+      if (typeof window !== 'undefined' && (window as any).fbq) {
+        ;(window as any).fbq('track', 'CompleteRegistration', {
+          content_name: 'Stripe Connection',
+          currency: 'USD',
+          value: 0,
+        })
+      }
       // Dispara o sync real em background
       fetch('/api/stripe/sync', { method: 'POST' })
         .catch(err => console.error('[onboarding] sync failed:', err))
     }
+  }, [searchParams])
+
+  // Landing here fresh (not mid-flow, not after an error) while already
+  // connected just re-shows "Connect your Stripe" from scratch — send them
+  // to the dashboard instead.
+  useEffect(() => {
+    if (searchParams.get('connected') === 'true' || searchParams.get('error') || searchParams.get('reconnect') === 'true') return
+
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase
+        .from('stripe_connections')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) window.location.href = '/dashboard'
+        })
+    })
   }, [searchParams])
 
   useEffect(() => {
@@ -147,7 +175,7 @@ function OnboardingContent() {
                 <div className="cc-icon">🔗</div>
                 <div className="cc-title">Connect your Stripe</div>
                 <p className="cc-sub">
-                  OAuth connection in 2 clicks. We request read-only access — we never touch your money.
+                  OAuth connection in 2 clicks. We never touch your money without your separate, explicit consent.
                 </p>
               </div>
               <div className="cc-body">
@@ -172,8 +200,8 @@ function OnboardingContent() {
                       </svg>
                     </div>
                     <div>
-                      <div className="cc-perm-title">Read-only access</div>
-                      <div className="cc-perm-desc">We cannot move money, create charges, or modify anything.</div>
+                      <div className="cc-perm-title">We never charge without consent</div>
+                      <div className="cc-perm-desc">We only read your data by default — we never move money or create charges unless you separately turn on Auto-Recovery.</div>
                     </div>
                   </div>
                   <div className="cc-perm">
@@ -244,14 +272,14 @@ function OnboardingContent() {
             <div className="reveal-card">
               <div className="rv-header">
                 <div className="rv-label">You lost this month to failed payments</div>
-                <div className="rv-amount">{realAmount !== null ? `$${realAmount.toLocaleString()}` : '$0'}</div>
+                <div className="rv-amount">{realAmount !== null ? `$${realAmount.toLocaleString('en-US')}` : '$0'}</div>
                 <div className="rv-sub">
                   across {realCount !== null ? `${realCount} failed payment${realCount !== 1 ? 's' : ''}` : '0 failed payments'} in the last 30 days
                 </div>
               </div>
               <div className="rv-body">
                 <div className="rv-insight">
-                  <strong>The good news:</strong> {realAmount !== null ? `$${realAmount.toLocaleString()}` : '$0'} of this is still recoverable within the 30-day window — if you act now.
+                  <strong>The good news:</strong> {realAmount !== null ? `$${realAmount.toLocaleString('en-US')}` : '$0'} of this is still recoverable within the 30-day window — if you act now.
                 </div>
                 {realAmount === null && (
                   <div className="rv-breakdown">
@@ -271,7 +299,7 @@ function OnboardingContent() {
                 )}
                 <div className="rv-cta-wrap">
                   <Link href="/upgrade" className="rv-btn main">
-                    ⚡ {realAmount !== null ? `Recover $${realAmount.toLocaleString()} now — $29/mo` : 'Activate Recovery — $29/mo'}
+                    ⚡ {realAmount !== null ? `Recover $${realAmount.toLocaleString('en-US')} now — $29/mo` : 'Activate Recovery — $29/mo'}
                   </Link>
                   <Link href="/dashboard" className="rv-btn ghost">
                     View Dashboard first
