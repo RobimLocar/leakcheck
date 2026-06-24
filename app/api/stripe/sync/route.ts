@@ -30,12 +30,13 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Fetch failed payments from Stripe using platform key + Stripe-Account header
+  // Fetch failed payments using the connected account's OAuth access token
   let payments
   try {
-    payments = await fetchFailedPayments(connection.stripe_account_id)
+    payments = await fetchFailedPayments(connection.access_token)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Stripe fetch failed'
+    console.error('[sync] fetchFailedPayments failed:', message)
     return NextResponse.json({ error: message }, { status: 502 })
   }
 

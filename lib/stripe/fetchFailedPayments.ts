@@ -46,7 +46,7 @@ function mapReason(code: string | null | undefined): string {
 }
 
 async function listInvoices(
-  stripeAccountId: string,
+  accessToken: string,
   status: 'open' | 'uncollectible',
   sinceUnix: number
 ): Promise<StripeInvoice[]> {
@@ -58,33 +58,29 @@ async function listInvoices(
   params.append('expand[]', 'data.charge')
 
   const res = await fetch(`https://api.stripe.com/v1/invoices?${params}`, {
-    headers: {
-      Authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}`,
-      'Stripe-Account': stripeAccountId,
-    },
-    // Never cache — always fetch live data
-    cache: 'no-store',
+    headers: { Authorization: `Bearer ${accessToken}` },
   })
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new Error(
-      `Stripe API error (${status} invoices): ${body?.error?.message ?? res.statusText}`
-    )
+    const msg = `Stripe ${status} invoices error ${res.status}: ${body?.error?.message ?? res.statusText}`
+    console.error('[fetchFailedPayments]', msg)
+    throw new Error(msg)
   }
 
   const list: StripeListResponse<StripeInvoice> = await res.json()
+  console.log(`[fetchFailedPayments] ${status} invoices fetched:`, list.data.length, 'has_more:', list.has_more)
   return list.data
 }
 
 export async function fetchFailedPayments(
-  stripeAccountId: string
+  accessToken: string
 ): Promise<FailedPayment[]> {
   const since = Math.floor((Date.now() - 90 * 24 * 60 * 60 * 1000) / 1000)
 
   const [openInvoices, uncollectibleInvoices] = await Promise.all([
-    listInvoices(stripeAccountId, 'open', since),
-    listInvoices(stripeAccountId, 'uncollectible', since),
+    listInvoices(accessToken, 'open', since),
+    listInvoices(accessToken, 'uncollectible', since),
   ])
 
   // Merge and deduplicate (an invoice shouldn't appear in both, but be safe)
