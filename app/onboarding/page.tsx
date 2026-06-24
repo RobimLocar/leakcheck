@@ -26,10 +26,11 @@ const BREAKDOWN = [
 ]
 
 const ERROR_MESSAGES: Record<string, string> = {
-  stripe_denied:   'Stripe connection was cancelled. Try again.',
-  token_exchange:  'Could not connect to Stripe. Try again.',
-  db:              'Connection saved, but we hit a hiccup. Try again.',
-  misconfigured:   'Stripe Connect is not configured. Contact support.',
+  stripe_denied:     'Stripe connection was cancelled. Try again.',
+  token_exchange:    'Could not connect to Stripe. Try again.',
+  db:                'Something went wrong saving your connection. Try again.',
+  misconfigured:     'Stripe Connect is not configured. Contact support.',
+  already_connected: 'This Stripe account is already linked to another LeakCheck account. Disconnect it there first, or use a different Stripe account.',
 }
 
 function OnboardingContent() {
