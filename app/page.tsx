@@ -732,6 +732,104 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* ── TIMELINE ── */}
+      <div className="pad" style={{ background: 'var(--bg)' }}>
+        <div className="inn">
+          <div className="label rv">The full loop</div>
+          <h2 className="h2 rv d1">From failure to recovered —<br />fully automatic.</h2>
+          <p className="sub rv d2" style={{ marginTop: '14px' }}>Set it up once. LeakCheck runs the entire recovery loop for you.</p>
+
+          <div className="rv d1" style={{ marginTop: '48px', position: 'relative' }}>
+
+            {/* Connecting line — desktop only */}
+            <div style={{ position: 'absolute', top: '28px', left: '10%', right: '10%', height: '2px', background: 'linear-gradient(90deg, rgba(255,61,61,.4), rgba(245,158,11,.4), rgba(99,102,241,.4), rgba(34,197,94,.4), rgba(34,197,94,.6))', borderRadius: '1px' }} />
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', position: 'relative' }}>
+              {[
+                {
+                  icon: '💸',
+                  color: 'rgba(255,61,61,.15)',
+                  border: 'rgba(255,61,61,.3)',
+                  dot: 'var(--red)',
+                  step: '01',
+                  title: 'Payment fails',
+                  desc: 'A customer\'s card is declined — expired, insufficient funds, or a bank block.',
+                  time: 'T+0s',
+                },
+                {
+                  icon: '🔔',
+                  color: 'rgba(99,102,241,.1)',
+                  border: 'rgba(99,102,241,.25)',
+                  dot: '#818cf8',
+                  step: '02',
+                  title: 'You\'re notified',
+                  desc: 'Instant alert via Email, Slack or Telegram — before you even open the dashboard.',
+                  time: 'T+5s',
+                },
+                {
+                  icon: '⚡',
+                  color: 'rgba(245,158,11,.08)',
+                  border: 'rgba(245,158,11,.25)',
+                  dot: '#f59e0b',
+                  step: '03',
+                  title: 'Auto-retry fires',
+                  desc: 'LeakCheck retries at the right time for each failure type — not random, not too soon.',
+                  time: 'T+24h',
+                },
+                {
+                  icon: '📧',
+                  color: 'rgba(99,102,241,.08)',
+                  border: 'rgba(99,102,241,.2)',
+                  dot: '#a5b4fc',
+                  step: '04',
+                  title: 'Recovery email sent',
+                  desc: 'Your customer gets a personalized email — in your words, from your name.',
+                  time: 'T+72h',
+                },
+                {
+                  icon: '💰',
+                  color: 'rgba(34,197,94,.08)',
+                  border: 'rgba(34,197,94,.25)',
+                  dot: '#4ade80',
+                  step: '05',
+                  title: 'Recovered — you know it',
+                  desc: 'Payment goes through. You get a recovery alert. Revenue restored, zero effort.',
+                  time: 'T+3–7d',
+                },
+              ].map(({ icon, color, border, dot, step, title, desc, time }) => (
+                <div key={step} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '0 4px' }}>
+                  {/* Dot on the line */}
+                  <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: color, border: `1.5px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', position: 'relative', zIndex: 1, flexShrink: 0 }}>
+                    {icon}
+                    <div style={{ position: 'absolute', bottom: '-4px', right: '-4px', width: '16px', height: '16px', borderRadius: '50%', background: dot, border: '2px solid var(--bg)' }} />
+                  </div>
+                  {/* Card */}
+                  <div style={{ background: 'var(--s2)', border: `1px solid ${border}`, borderRadius: '12px', padding: '16px', width: '100%', textAlign: 'center' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 700, color: dot, letterSpacing: '.06em', marginBottom: '6px' }}>{step} · {time}</div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)', marginBottom: '6px', lineHeight: 1.3 }}>{title}</div>
+                    <p style={{ fontSize: '11.5px', color: 'var(--tx3)', margin: 0, lineHeight: 1.6 }}>{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Mobile: vertical fallback */}
+            <style>{`
+              @media (max-width: 640px) {
+                .timeline-grid { grid-template-columns: 1fr !important; }
+                .timeline-line { display: none !important; }
+              }
+            `}</style>
+
+          </div>
+
+          <div className="rv d2" style={{ marginTop: '40px', padding: '20px 24px', background: 'rgba(34,197,94,.04)', border: '1px solid rgba(34,197,94,.15)', borderRadius: '14px', textAlign: 'center' }}>
+            <p style={{ fontSize: '14px', color: 'var(--tx2)', margin: '0 0 4px', fontWeight: 600 }}>Average time from failure to recovery: <span style={{ color: '#4ade80' }}>3–7 days</span></p>
+            <p style={{ fontSize: '12px', color: 'var(--tx3)', margin: 0 }}>Without LeakCheck: the payment stays failed. The customer churns. You never know why.</p>
+          </div>
+        </div>
+      </div>
+
       {/* ── TESTIMONIALS ── */}
       <div className="sw">
         <div className="pad">
