@@ -49,10 +49,10 @@ const COL_INDICES = [
 
 const FREE_FEATURES = [
   'Failed payment dashboard',
+  'Account Risk Score — ranked by failure pattern',
   'Breakdown by failure reason',
   'Full customer list',
-  '90-day payment history',
-  'Unlimited Stripe accounts',
+  '12-month payment history',
 ]
 
 const PRO_FEATURES = [
@@ -61,7 +61,8 @@ const PRO_FEATURES = [
   'Email + SMS recovery sequence',
   'Write your own message templates — or generate with AI',
   'Real-time Slack + email alerts',
-  'Monthly recovery report',
+  'Monthly CFO recovery report',
+  'Team members — invite up to 3',
 ]
 
 const FAQ_ITEMS = [
