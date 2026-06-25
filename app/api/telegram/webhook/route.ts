@@ -3,11 +3,18 @@ import { type NextRequest, NextResponse } from 'next/server'
 const BASE = () => `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`
 
 async function reply(chatId: number, text: string) {
-  await fetch(`${BASE()}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
-  }).catch(() => {})
+  try {
+    const res = await fetch(`${BASE()}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text }),
+    })
+    if (!res.ok) {
+      console.error('[telegram/webhook] reply failed:', res.status, await res.text().catch(() => ''))
+    }
+  } catch (err) {
+    console.error('[telegram/webhook] reply error:', err)
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -25,7 +32,7 @@ export async function POST(request: NextRequest) {
       console.log('[telegram/webhook] replying to chatId:', chatId)
       await reply(
         chatId,
-        `👋 <b>Welcome to LeakCheck!</b>\n\nYour Telegram Chat ID is:\n<code>${chatId}</code>\n\nCopy this number and paste it in your LeakCheck dashboard → Alerts → Telegram section → Save.\n\nYou'll then receive instant notifications when a payment fails or is recovered.`,
+        `Welcome to LeakCheck Alerts!\n\nYour Chat ID is: ${chatId}\n\nCopy this number and paste it in your LeakCheck dashboard under Alerts > Telegram > Save.\n\nYou will receive notifications when a payment fails or is recovered.`,
       )
     }
   } catch {
