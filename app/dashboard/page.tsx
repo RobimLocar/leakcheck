@@ -763,15 +763,35 @@ const AlertsView = ({
   slackSaveMsg: string
   slackTestMsg: string
 }) => (
-  <div className="table-card" style={{ maxWidth: '520px' }}>
+  <div className="table-card" style={{ maxWidth: '560px' }}>
     <div className="table-head">
       <div className="table-title">Slack Alerts</div>
+      <div style={{ fontSize: '12px', color: 'var(--tx3)' }}>Get notified instantly — no need to check the dashboard</div>
     </div>
     <div style={{ padding: '8px 20px 24px' }}>
-      <p style={{ fontSize: '13px', color: 'var(--tx2)', lineHeight: '1.7', marginBottom: '16px' }}>
-        Get a Slack message when a payment fails, and when auto-retry recovers one.
-        Create an Incoming Webhook in Slack and paste the URL below.
-      </p>
+
+      {/* What you'll receive */}
+      <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {[
+          { icon: '🔴', text: 'A customer\'s payment just failed — you\'ll know immediately, with the name and amount' },
+          { icon: '💰', text: 'A failed payment was recovered — so you can see the win in real time' },
+        ].map(({ icon, text }) => (
+          <div key={icon} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', padding: '10px 14px', background: 'rgba(255,255,255,.03)', border: '1px solid var(--bd)', borderRadius: '8px' }}>
+            <span style={{ fontSize: '15px', lineHeight: 1, flexShrink: 0 }}>{icon}</span>
+            <span style={{ fontSize: '12.5px', color: 'var(--tx2)', lineHeight: '1.6' }}>{text}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* How to connect */}
+      <div style={{ marginBottom: '14px', padding: '12px 14px', background: 'rgba(99,102,241,.06)', border: '1px solid rgba(99,102,241,.2)', borderRadius: '8px' }}>
+        <p style={{ fontSize: '12px', color: '#a5b4fc', fontWeight: 600, margin: '0 0 6px' }}>How to connect Slack (2 steps):</p>
+        <ol style={{ margin: 0, paddingLeft: '16px', fontSize: '12px', color: 'var(--tx3)', lineHeight: '1.8' }}>
+          <li>In Slack, go to <strong style={{ color: 'var(--tx2)' }}>Apps → Incoming Webhooks</strong> → create one for any channel</li>
+          <li>Copy the link Slack gives you and paste it in the field below</li>
+        </ol>
+      </div>
+
       <input
         type="url"
         placeholder="https://hooks.slack.com/services/..."
@@ -780,7 +800,7 @@ const AlertsView = ({
         style={{
           width: '100%', padding: '10px 12px', borderRadius: '8px',
           border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--tx)',
-          fontSize: '13px', marginBottom: '12px',
+          fontSize: '13px', marginBottom: '12px', boxSizing: 'border-box',
         }}
       />
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -794,12 +814,17 @@ const AlertsView = ({
           disabled={slackTesting || !slackWebhookUrl}
           title={!slackWebhookUrl ? 'Save a webhook URL first' : undefined}
         >
-          {slackTesting ? 'Sending...' : 'Send test alert'}
+          {slackTesting ? 'Sending...' : '✓ Send test message'}
         </button>
         {(slackSaveMsg || slackTestMsg) && (
           <span style={{ fontSize: '12px', color: 'var(--tx2)' }}>{slackSaveMsg || slackTestMsg}</span>
         )}
       </div>
+      {!slackWebhookUrl && (
+        <p style={{ fontSize: '11.5px', color: 'var(--tx3)', marginTop: '10px', marginBottom: 0 }}>
+          After saving, click "Send test message" to confirm it's working before relying on it.
+        </p>
+      )}
     </div>
   </div>
 )
