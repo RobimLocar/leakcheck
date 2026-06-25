@@ -902,3 +902,7 @@ canvas#chart { width: 100%; height: 140px; display: block; }
 @media (max-width: 480px) {
   .login-head, .login-body { padding: 24px 20px; }
 }
+@media (max-width: 640px) {
+  .timeline-grid { grid-template-columns: 1fr !important; }
+  .timeline-line { display: none !important; }
+}

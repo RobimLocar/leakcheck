@@ -14,8 +14,23 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "LeakCheck",
-  description: "Monitor your brand for data leaks and credential exposure.",
+  title: "LeakCheck — Recover Failed Stripe Payments Automatically",
+  description:
+    "LeakCheck connects to your Stripe in 60 seconds and shows you exactly how much revenue you lose to failed payments — then recovers it automatically with smart retries and email sequences.",
+  openGraph: {
+    title: "LeakCheck — Recover Failed Stripe Payments Automatically",
+    description:
+      "Stop losing revenue to failed payments. LeakCheck detects the leak, notifies you instantly, and recovers the money — automatically.",
+    url: "https://getleakcheck.com",
+    siteName: "LeakCheck",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "LeakCheck — Recover Failed Stripe Payments Automatically",
+    description:
+      "Stop losing revenue to failed payments. LeakCheck detects the leak, notifies you instantly, and recovers the money — automatically.",
+  },
 };
 
 export default function RootLayout({

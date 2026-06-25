@@ -409,7 +409,7 @@ export default function LandingPage() {
           <div className="live-counter rv d2">
             <div className="counter-label">You&apos;ve lost this month to failed payments</div>
             <div className="counter-val">${counterVal.toLocaleString('en-US')}</div>
-            <div className="counter-sub">Based on industry averages for your MRR size</div>
+            <div className="counter-sub">Industry average for a $5k MRR team — yours may be higher</div>
             <div className="counter-bar">
               <div className="counter-fill" style={{ width: `${counterFill}%` }} />
             </div>
@@ -748,9 +748,9 @@ export default function LandingPage() {
           <div className="rv d1" style={{ marginTop: '48px', position: 'relative' }}>
 
             {/* Connecting line — desktop only */}
-            <div style={{ position: 'absolute', top: '28px', left: '10%', right: '10%', height: '2px', background: 'linear-gradient(90deg, rgba(255,61,61,.4), rgba(245,158,11,.4), rgba(99,102,241,.4), rgba(34,197,94,.4), rgba(34,197,94,.6))', borderRadius: '1px' }} />
+            <div className="timeline-line" style={{ position: 'absolute', top: '28px', left: '10%', right: '10%', height: '2px', background: 'linear-gradient(90deg, rgba(255,61,61,.4), rgba(245,158,11,.4), rgba(99,102,241,.4), rgba(34,197,94,.4), rgba(34,197,94,.6))', borderRadius: '1px' }} />
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', position: 'relative' }}>
+            <div className="timeline-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', position: 'relative' }}>
               {[
                 {
                   icon: '💸',
@@ -819,13 +819,6 @@ export default function LandingPage() {
               ))}
             </div>
 
-            {/* Mobile: vertical fallback */}
-            <style>{`
-              @media (max-width: 640px) {
-                .timeline-grid { grid-template-columns: 1fr !important; }
-                .timeline-line { display: none !important; }
-              }
-            `}</style>
 
           </div>
 
@@ -842,7 +835,7 @@ export default function LandingPage() {
           <div className="inn">
             <div className="label rv">What teams say</div>
             <h2 className="h2 rv d1">They didn&apos;t know.<br />Now they do.</h2>
-            <p className="sub rv d2" style={{ marginTop: '14px' }}>Real teams. Real numbers. Zero setup required.</p>
+            <p className="sub rv d2" style={{ marginTop: '14px' }}>Real teams. Real numbers. No dev work required.</p>
             <div className="tscene rv">
               <div className="tft" /><div className="tfb" /><div className="tfl" /><div className="tfr" />
               <div className="t3d">
