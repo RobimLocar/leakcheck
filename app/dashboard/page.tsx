@@ -862,7 +862,7 @@ const SettingsCard = ({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const [period, setPeriod] = useState<'7d' | '30d' | '90d'>('30d')
+  const [period, setPeriod] = useState<'7d' | '30d' | '90d' | '12m'>('30d')
   const [search, setSearch] = useState('')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeNav, setActiveNav] = useState<NavKey>('dashboard')
@@ -1007,7 +1007,7 @@ export default function DashboardPage() {
 
   // ── Derived data ───────────────────────────────────────────────────────────
 
-  const periodDays = period === '7d' ? 7 : period === '30d' ? 30 : 90
+  const periodDays = period === '7d' ? 7 : period === '30d' ? 30 : period === '90d' ? 90 : 365
 
   const periodPayments = useMemo(() => {
     const since = Date.now() - periodDays * 86400000
@@ -1387,7 +1387,7 @@ export default function DashboardPage() {
             </div>
             <div className="tb-right">
               <div className="tb-period">
-                {(['7d', '30d', '90d'] as const).map(p => (
+                {(['7d', '30d', '90d', '12m'] as const).map(p => (
                   <div key={p} className={`tb-p${period === p ? ' on' : ''}`} onClick={() => setPeriod(p)}>{p}</div>
                 ))}
               </div>
