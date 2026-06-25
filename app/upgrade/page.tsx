@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-const LTD_TAKEN = 7
 const LTD_TOTAL = 20
 
 const TESTIMONIALS = [
@@ -75,6 +74,7 @@ export default function UpgradePage() {
   const [roiAmt, setRoiAmt] = useState(0)
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [ltdTaken, setLtdTaken] = useState(7)
 
   useEffect(() => {
     const animCount = (target: number, setter: (v: number) => void) => {
@@ -90,6 +90,12 @@ export default function UpgradePage() {
       animCount(347, setLostAmt)
       animCount(295, setRoiAmt)
     }, 500)
+
+    fetch('/api/ltd-count')
+      .then(r => r.json())
+      .then(d => { if (typeof d.taken === 'number') setLtdTaken(d.taken) })
+      .catch(() => {})
+
     return () => clearTimeout(t)
   }, [])
 
@@ -116,7 +122,7 @@ export default function UpgradePage() {
     }
   }
 
-  const spots = Array.from({ length: LTD_TOTAL }, (_, i) => i < LTD_TAKEN)
+  const spots = Array.from({ length: LTD_TOTAL }, (_, i) => i < ltdTaken)
 
   return (
     <>
@@ -288,7 +294,7 @@ export default function UpgradePage() {
         <div className="ltd">
           <div className="ltd-emoji">🔥</div>
           <div className="ltd-content">
-            <div className="ltd-title">Lifetime Deal — Only 20 spots total, 13 remaining</div>
+            <div className="ltd-title">Lifetime Deal — Only {LTD_TOTAL} spots total, {LTD_TOTAL - ltdTaken} remaining</div>
             <div className="ltd-desc">
               Pay <strong>$149 once</strong>, use forever. All future features included. Price goes up when spots are gone.
             </div>
@@ -297,7 +303,7 @@ export default function UpgradePage() {
               {spots.map((taken, i) => (
                 <div key={i} className={taken ? 'ltd-spot taken' : 'ltd-spot'} />
               ))}
-              <span style={{ fontSize: '11px', color: 'var(--tx3)', marginLeft: '4px' }}>7 taken · 13 left</span>
+              <span style={{ fontSize: '11px', color: 'var(--tx3)', marginLeft: '4px' }}>{ltdTaken} taken · {LTD_TOTAL - ltdTaken} left</span>
             </div>
           </div>
           <button
