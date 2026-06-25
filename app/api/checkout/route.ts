@@ -1,3 +1,4 @@
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { stripeGet, stripePost } from '@/lib/stripe/connectedAccountApi'
 import { type NextRequest, NextResponse } from 'next/server'
@@ -61,6 +62,52 @@ async function getOrCreatePrice(plan: Plan, key: string): Promise<string> {
   return price.id as string
 }
 
+// ── Get or create a Stripe customer, persisting the ID to profiles ────────────
+// Order: profiles table → Stripe search by email → create new customer.
+// Saves the ID on first discovery so future checkouts skip the lookup.
+
+async function getOrCreateStripeCustomer(
+  email: string,
+  userId: string,
+  secretKey: string,
+): Promise<string> {
+  const admin = createAdminClient()
+
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('stripe_customer_id')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (profile?.stripe_customer_id) return profile.stripe_customer_id
+
+  // Search Stripe by email to avoid creating duplicates
+  const search = await stripeGet(
+    `/v1/customers/search?query=${encodeURIComponent(`email:"${email}"`)}`,
+    secretKey,
+  )
+
+  let customerId: string
+  if (search.data?.length > 0) {
+    customerId = search.data[0].id as string
+  } else {
+    const customer = await stripePost(
+      '/v1/customers',
+      { email, 'metadata[user_id]': userId },
+      secretKey,
+    )
+    if (customer.error) throw new Error(`Create customer failed: ${customer.error.message}`)
+    customerId = customer.id as string
+  }
+
+  await admin
+    .from('profiles')
+    .update({ stripe_customer_id: customerId })
+    .eq('id', userId)
+
+  return customerId
+}
+
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
@@ -96,8 +143,12 @@ export async function POST(request: NextRequest) {
   const origin = request.nextUrl.origin
 
   let priceId: string
+  let customerId: string
   try {
-    priceId = await getOrCreatePrice(plan, secretKey)
+    ;[priceId, customerId] = await Promise.all([
+      getOrCreatePrice(plan, secretKey),
+      getOrCreateStripeCustomer(user.email!, user.id, secretKey),
+    ])
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to prepare checkout'
     return NextResponse.json({ error: message }, { status: 500 })
@@ -111,8 +162,8 @@ export async function POST(request: NextRequest) {
     cancel_url: `${origin}/upgrade`,
     'metadata[user_id]': user.id,
     'metadata[plan]': plan,
+    customer: customerId,
   }
-  if (user.email) sessionParams.customer_email = user.email
 
   const session = await stripePost('/v1/checkout/sessions', sessionParams, secretKey)
 

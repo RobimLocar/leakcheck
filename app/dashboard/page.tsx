@@ -26,7 +26,7 @@ interface DbPayment {
   email_step: number
 }
 
-type NavKey = 'dashboard' | 'payments' | 'revenue' | 'auto-recovery' | 'email' | 'alerts' | 'settings'
+type NavKey = 'dashboard' | 'accounts' | 'payments' | 'revenue' | 'auto-recovery' | 'email' | 'alerts' | 'settings'
 
 // ── Nav definitions ───────────────────────────────────────────────────────────
 
@@ -34,6 +34,10 @@ const NAV_MAIN: { key: NavKey; label: string; icon: React.ReactNode }[] = [
   {
     key: 'dashboard', label: 'Dashboard',
     icon: <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>,
+  },
+  {
+    key: 'accounts', label: 'Account Risk',
+    icon: <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M9 12l2 2 4-4" /></svg>,
   },
   {
     key: 'payments', label: 'Payments',
@@ -144,6 +148,62 @@ function recoveryStatusShort(p: DbPayment, canRetry: boolean): string {
   if (!canRetry) return '🔓 Needs access'
   if (p.retry_exhausted) return '✕ Exhausted'
   return '⏳ Auto-retrying'
+}
+
+// ── Account Risk ─────────────────────────────────────────────────────────────
+
+interface AccountRisk {
+  key: string
+  name: string | null
+  email: string | null
+  totalAmount: number
+  failureCount: number
+  topReason: string
+  lastFailureAt: string
+  score: number
+  level: 'high' | 'medium' | 'low'
+}
+
+function computeAccountRisks(payments: DbPayment[]): AccountRisk[] {
+  const open = payments.filter(p => p.status === 'open')
+  const map = new Map<string, DbPayment[]>()
+
+  for (const p of open) {
+    const key = p.customer_email ?? p.customer_name ?? p.stripe_invoice_id
+    if (!map.has(key)) map.set(key, [])
+    map.get(key)!.push(p)
+  }
+
+  return Array.from(map.entries()).map(([key, ps]) => {
+    const sorted = [...ps].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    const latest = sorted[0]
+    const daysSince = (Date.now() - new Date(latest.created_at).getTime()) / 86400000
+
+    const reasonCounts = ps.reduce<Record<string, number>>((acc, p) => {
+      acc[p.failure_reason] = (acc[p.failure_reason] ?? 0) + 1
+      return acc
+    }, {})
+    const topReason = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0][0]
+
+    // Score: count of failures (max 60) + recency bonus + severity bonus
+    const countScore = Math.min(ps.length * 20, 60)
+    const recencyScore = daysSince < 7 ? 30 : daysSince < 30 ? 15 : 0
+    const severityScore = topReason === 'Bank Decline' ? 20 : topReason === 'Insufficient Funds' ? 15 : 10
+    const score = Math.min(100, countScore + recencyScore + severityScore)
+    const level: 'high' | 'medium' | 'low' = score >= 70 ? 'high' : score >= 35 ? 'medium' : 'low'
+
+    return {
+      key,
+      name: ps[0].customer_name,
+      email: ps[0].customer_email,
+      totalAmount: ps.reduce((s, p) => s + p.amount, 0),
+      failureCount: ps.length,
+      topReason,
+      lastFailureAt: latest.created_at,
+      score,
+      level,
+    }
+  }).sort((a, b) => b.score - a.score)
 }
 
 // ── Reusable content blocks ─────────────────────────────────────────────────
@@ -376,6 +436,91 @@ const PaymentsTable = ({
     )}
   </div>
 )
+
+const AccountRiskView = ({ allPayments, isPro, canRetry }: { allPayments: DbPayment[]; isPro: boolean; canRetry: boolean }) => {
+  const accounts = useMemo(() => computeAccountRisks(allPayments), [allPayments])
+
+  const lc = (level: AccountRisk['level']) =>
+    level === 'high' ? 'var(--red)' : level === 'medium' ? '#f59e0b' : 'var(--grn)'
+  const lb = (level: AccountRisk['level']) =>
+    level === 'high' ? 'rgba(255,61,61,.1)' : level === 'medium' ? 'rgba(245,158,11,.1)' : 'rgba(0,255,136,.1)'
+  const ll = (level: AccountRisk['level']) =>
+    level === 'high' ? 'High' : level === 'medium' ? 'Medium' : 'Low'
+
+  return (
+    <div className="table-card">
+      <div className="table-head">
+        <div className="table-title">
+          Account Risk
+          <span className="tcount">{accounts.length}</span>
+        </div>
+        <div style={{ fontSize: '12px', color: 'var(--tx3)' }}>
+          Accounts ranked by failure pattern — act on High risk first
+        </div>
+      </div>
+
+      {accounts.length === 0 ? (
+        <div className="empty">
+          <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M9 12l2 2 4-4" />
+          </svg>
+          <p>No open failed payments to analyze</p>
+        </div>
+      ) : (
+        <>
+          <div className="th">
+            <span>Account</span>
+            <span>At Risk</span>
+            <span>Failures</span>
+            <span>Top Reason</span>
+            <span style={{ textAlign: 'right' }}>Risk Score</span>
+          </div>
+          {accounts.map((acc, i) => {
+            const displayName = acc.name ?? acc.email ?? 'Unknown'
+            const color = avatarColor(acc.key)
+            const ini = getInitials(acc.name, acc.email)
+            const tag = reasonTag(acc.topReason)
+            return (
+              <div className="tr" key={acc.key} style={{ animationDelay: `${i * 0.05}s` }}>
+                <div className="tr-customer">
+                  <div className="tr-av" style={{ background: `${color}22`, color }}>{ini}</div>
+                  <div>
+                    <div className="tr-name">{displayName}</div>
+                    <div className="tr-email">{acc.email ?? ''}</div>
+                  </div>
+                </div>
+                <div className="tr-amount">−${(acc.totalAmount / 100).toFixed(2)}</div>
+                <div style={{ fontSize: '13px', color: 'var(--tx2)' }}>{acc.failureCount}×</div>
+                <div><span className={`tag ${tag}`}>{acc.topReason}</span></div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '5px',
+                    padding: '3px 10px', borderRadius: '20px',
+                    fontSize: '11px', fontWeight: 600,
+                    background: lb(acc.level), color: lc(acc.level),
+                  }}>
+                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: lc(acc.level), display: 'inline-block' }} />
+                    {ll(acc.level)} · {acc.score}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+          {!isPro && (
+            <div style={{ padding: '14px 20px', borderTop: '1px solid var(--bd)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '12.5px', color: 'var(--tx2)' }}>
+                🔒 Upgrade to automatically recover High risk accounts
+              </div>
+              <Link href="/upgrade">
+                <button className="tb-btn red" style={{ fontSize: '12px' }}>Activate Recovery →</button>
+              </Link>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
 
 const ProUpgradeCard = ({ feature }: { feature: string }) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '420px' }}>
@@ -1325,6 +1470,11 @@ export default function DashboardPage() {
                 <ChartCard periodDays={periodDays} chartRef={chartRef} />
                 <PaymentsTable filteredPayments={filteredPayments} search={search} setSearch={setSearch} loading={loading} hasConnection={hasConnection} isPro={isPro} canRetry={connectionScope === 'read_write'} />
               </>
+            )}
+
+            {/* ── ACCOUNT RISK ── */}
+            {activeNav === 'accounts' && (
+              <AccountRiskView allPayments={allPayments} isPro={isPro} canRetry={connectionScope === 'read_write'} />
             )}
 
             {/* ── PAYMENTS ── */}
