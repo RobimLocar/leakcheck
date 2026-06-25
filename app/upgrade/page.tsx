@@ -226,12 +226,13 @@ export default function UpgradePage() {
             <p className="pc-desc">Dashboard visibility only.</p>
             <div className="pc-div" />
             <div className="pc-f"><div className="pc-ck">✓</div>Failed payment dashboard</div>
+            <div className="pc-f"><div className="pc-ck">✓</div>Account Risk Score</div>
             <div className="pc-f"><div className="pc-ck">✓</div>Breakdown by failure reason</div>
             <div className="pc-f"><div className="pc-ck">✓</div>Customer list</div>
             <div className="pc-f"><div className="pc-ck">✓</div>12-month history</div>
             <div className="pc-f"><div className="pc-x">✕</div><span style={{ opacity: 0.5 }}>Auto-recovery</span></div>
-            <div className="pc-f"><div className="pc-x">✕</div><span style={{ opacity: 0.5 }}>Recovery emails</span></div>
-            <div className="pc-f"><div className="pc-x">✕</div><span style={{ opacity: 0.5 }}>Slack alerts</span></div>
+            <div className="pc-f"><div className="pc-x">✕</div><span style={{ opacity: 0.5 }}>Alerts — Email, Slack & Telegram</span></div>
+            <div className="pc-f"><div className="pc-x">✕</div><span style={{ opacity: 0.5 }}>Recovery email + SMS sequence</span></div>
             <button className="pc-cta ghost" onClick={() => { window.location.href = '/dashboard' }}>
               Get Started Free
             </button>
@@ -249,7 +250,7 @@ export default function UpgradePage() {
             <div className="pc-f"><div className="pc-ck">✓</div>Email + SMS recovery sequence</div>
             <div className="pc-f"><div className="pc-ck">✓</div>Custom templates — write your own or generate with AI</div>
             <div className="pc-f"><div className="pc-ck">✓</div>Sent from your name, replies go to your inbox</div>
-            <div className="pc-f"><div className="pc-ck">✓</div>Real-time Slack + email alerts</div>
+            <div className="pc-f"><div className="pc-ck">✓</div>Instant alerts — Email, Slack &amp; Telegram</div>
             <div className="pc-f"><div className="pc-ck">✓</div>Monthly recovery report</div>
             <div className="pc-f"><div className="pc-ck">✓</div>Priority support</div>
             <button

@@ -55,6 +55,12 @@ const FREE_FEATURES = [
   '12-month payment history',
 ]
 
+const FREE_LOCKED = [
+  'Auto-recovery',
+  'Alerts — Email, Slack & Telegram',
+  'Recovery email + SMS sequence',
+]
+
 const PRO_FEATURES = [
   'Everything in Free',
   'Smart retry logic by failure type',
@@ -869,6 +875,13 @@ export default function LandingPage() {
               <div className="pc-div" />
               {FREE_FEATURES.map(f => (
                 <div key={f} className="pc-f"><div className="pc-ck">✓</div>{f}</div>
+              ))}
+              <div className="pc-div" style={{ margin: '12px 0 8px' }} />
+              {FREE_LOCKED.map(f => (
+                <div key={f} className="pc-f" style={{ opacity: 0.38 }}>
+                  <div className="pc-x">✕</div>
+                  <span>{f}</span>
+                </div>
               ))}
               <Link href="/onboarding" className="pc-cta out" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>Connect Stripe — Free</Link>
             </div>
