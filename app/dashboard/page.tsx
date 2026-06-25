@@ -753,6 +753,8 @@ const AlertsView = ({
   slackInput, setSlackInput, slackSaving, saveSlackWebhook,
   slackTesting, testSlackAlert, slackWebhookUrl, slackSaveMsg, slackTestMsg,
   emailAlertsEnabled, toggleEmailAlerts, emailAlertsLoading,
+  telegramInput, setTelegramInput, telegramSaving, saveTelegramChatId,
+  telegramTesting, testTelegramAlert, telegramChatId, telegramSaveMsg, telegramTestMsg,
 }: {
   slackInput: string
   setSlackInput: (s: string) => void
@@ -766,6 +768,15 @@ const AlertsView = ({
   emailAlertsEnabled: boolean
   toggleEmailAlerts: () => void
   emailAlertsLoading: boolean
+  telegramInput: string
+  setTelegramInput: (s: string) => void
+  telegramSaving: boolean
+  saveTelegramChatId: () => void
+  telegramTesting: boolean
+  testTelegramAlert: () => void
+  telegramChatId: string
+  telegramSaveMsg: string
+  telegramTestMsg: string
 }) => {
   const [showSlackHelp, setShowSlackHelp] = useState(false)
   const [emailTesting, setEmailTesting] = useState(false)
@@ -953,6 +964,71 @@ const AlertsView = ({
         <p style={{ fontSize: '11.5px', color: 'var(--tx3)', marginTop: '10px', marginBottom: 0 }}>
           After saving, click "Send test message" to confirm it's working before relying on it.
         </p>
+      )}
+    </div>
+  </div>
+
+  {/* Telegram card */}
+  <div className="table-card">
+    <div className="table-head">
+      <div className="table-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <span>Telegram Alerts</span>
+        <span style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '4px', background: 'rgba(34,197,94,.12)', color: '#4ade80', fontWeight: 600 }}>Mobile</span>
+      </div>
+      <div style={{ fontSize: '12px', color: 'var(--tx3)' }}>Instant push notifications — no extra app needed if you use Telegram</div>
+    </div>
+    <div style={{ padding: '8px 20px 24px' }}>
+
+      {/* Setup steps */}
+      <div style={{ marginBottom: '14px', padding: '12px 14px', background: 'rgba(34,197,94,.04)', border: '1px solid rgba(34,197,94,.15)', borderRadius: '8px' }}>
+        <p style={{ fontSize: '12px', color: '#4ade80', fontWeight: 600, margin: '0 0 8px' }}>3-step setup:</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {[
+            { n: 1, text: <>Open Telegram and search for <strong style={{ color: 'var(--tx2)' }}>@{process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? 'LeakCheckBot'}</strong></> },
+            { n: 2, text: <>Press <strong style={{ color: 'var(--tx2)' }}>Start</strong> — the bot replies with your Chat ID (a number)</> },
+            { n: 3, text: <>Copy that number, paste it below and click <strong style={{ color: 'var(--tx2)' }}>Save</strong></> },
+          ].map(({ n, text }) => (
+            <div key={n} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+              <span style={{ flexShrink: 0, width: '18px', height: '18px', borderRadius: '50%', background: 'rgba(34,197,94,.15)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: '#4ade80' }}>{n}</span>
+              <span style={{ fontSize: '12px', color: 'var(--tx3)', lineHeight: 1.6 }}>{text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <input
+        type="text"
+        inputMode="numeric"
+        placeholder="Your Telegram Chat ID (e.g. 123456789)"
+        value={telegramInput}
+        onChange={e => setTelegramInput(e.target.value)}
+        style={{
+          width: '100%', padding: '10px 12px', borderRadius: '8px',
+          border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--tx)',
+          fontSize: '13px', marginBottom: '12px', boxSizing: 'border-box',
+        }}
+      />
+      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <button className="tb-btn out" style={{ fontSize: '12px' }} onClick={saveTelegramChatId} disabled={telegramSaving}>
+          {telegramSaving ? 'Saving...' : 'Save'}
+        </button>
+        <button
+          className="tb-btn out"
+          style={{ fontSize: '12px' }}
+          onClick={testTelegramAlert}
+          disabled={telegramTesting || !telegramChatId}
+          title={!telegramChatId ? 'Save a Chat ID first' : undefined}
+        >
+          {telegramTesting ? 'Sending...' : '✓ Send test message'}
+        </button>
+        {(telegramSaveMsg || telegramTestMsg) && (
+          <span style={{ fontSize: '12px', color: 'var(--tx2)' }}>{telegramSaveMsg || telegramTestMsg}</span>
+        )}
+      </div>
+      {telegramChatId && (
+        <div style={{ marginTop: '10px', padding: '8px 12px', background: 'rgba(34,197,94,.06)', border: '1px solid rgba(34,197,94,.2)', borderRadius: '7px', fontSize: '12px', color: '#4ade80' }}>
+          ✓ Connected — Telegram notifications are active
+        </div>
       )}
     </div>
   </div>
@@ -1147,6 +1223,12 @@ export default function DashboardPage() {
   const [slackTestMsg, setSlackTestMsg] = useState('')
   const [emailAlertsEnabled, setEmailAlertsEnabled] = useState(false)
   const [emailAlertsLoading, setEmailAlertsLoading] = useState(false)
+  const [telegramChatId, setTelegramChatId] = useState('')
+  const [telegramInput, setTelegramInput] = useState('')
+  const [telegramSaving, setTelegramSaving] = useState(false)
+  const [telegramSaveMsg, setTelegramSaveMsg] = useState('')
+  const [telegramTesting, setTelegramTesting] = useState(false)
+  const [telegramTestMsg, setTelegramTestMsg] = useState('')
   const [portalLoading, setPortalLoading] = useState(false)
   const [portalError, setPortalError] = useState('')
   const [templates, setTemplates] = useState<{ sms: Record<StepKey, string>; email: Record<StepKey, string> }>({
@@ -1179,7 +1261,7 @@ export default function DashboardPage() {
     if (user) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('is_pro, plan_type, slack_webhook_url, message_templates, sender_name, team_owner_id, email_alerts_enabled')
+        .select('is_pro, plan_type, slack_webhook_url, telegram_chat_id, message_templates, sender_name, team_owner_id, email_alerts_enabled')
         .eq('id', user.id)
         .maybeSingle()
       if (profile?.is_pro) setIsPro(true)
@@ -1205,6 +1287,10 @@ export default function DashboardPage() {
         setSlackInput(profile.slack_webhook_url)
       }
       setEmailAlertsEnabled(!!profile?.email_alerts_enabled)
+      if (profile?.telegram_chat_id) {
+        setTelegramChatId(profile.telegram_chat_id)
+        setTelegramInput(profile.telegram_chat_id)
+      }
       setSenderName(profile?.sender_name ?? '')
       const mt = profile?.message_templates as MessageTemplates | undefined
       setTemplates({
@@ -1490,6 +1576,43 @@ export default function DashboardPage() {
       setEmailAlertsEnabled(next)
     }
     setEmailAlertsLoading(false)
+  }
+
+  // ── Telegram alerts ───────────────────────────────────────────────────────
+
+  const saveTelegramChatId = async () => {
+    setTelegramSaving(true)
+    setTelegramSaveMsg('')
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setTelegramSaving(false); return }
+    const { error } = await supabase
+      .from('profiles')
+      .update({ telegram_chat_id: telegramInput.trim() || null })
+      .eq('id', user.id)
+    setTelegramSaving(false)
+    if (error) {
+      setTelegramSaveMsg('Failed to save')
+    } else {
+      setTelegramChatId(telegramInput.trim())
+      setTelegramSaveMsg('Saved!')
+      setTimeout(() => setTelegramSaveMsg(''), 2500)
+    }
+  }
+
+  const testTelegramAlert = async () => {
+    setTelegramTesting(true)
+    setTelegramTestMsg('')
+    try {
+      const res = await fetch('/api/alerts/test-telegram', { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      setTelegramTestMsg(res.ok ? 'Test sent — check Telegram' : (data.error ?? 'Failed to send'))
+    } catch {
+      setTelegramTestMsg('Failed to send')
+    } finally {
+      setTelegramTesting(false)
+      setTimeout(() => setTelegramTestMsg(''), 4000)
+    }
   }
 
   // ── Slack alerts ──────────────────────────────────────────────────────────
@@ -1839,6 +1962,15 @@ export default function DashboardPage() {
                 emailAlertsEnabled={emailAlertsEnabled}
                 toggleEmailAlerts={toggleEmailAlerts}
                 emailAlertsLoading={emailAlertsLoading}
+                telegramInput={telegramInput}
+                setTelegramInput={setTelegramInput}
+                telegramSaving={telegramSaving}
+                saveTelegramChatId={saveTelegramChatId}
+                telegramTesting={telegramTesting}
+                testTelegramAlert={testTelegramAlert}
+                telegramChatId={telegramChatId}
+                telegramSaveMsg={telegramSaveMsg}
+                telegramTestMsg={telegramTestMsg}
               />
             ) : <ProUpgradeCard feature={PRO_FEATURE_LABELS[activeNav]} />)}
 

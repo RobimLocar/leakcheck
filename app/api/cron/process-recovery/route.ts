@@ -4,12 +4,13 @@ import { isRetryDue, MAX_RETRIES } from '@/lib/recovery/retryPolicy'
 import { nextEmailStep } from '@/lib/recovery/emailSequence'
 import { sendRecoverySequenceEmail, sendOperatorAlert, sendOwnerPaymentAlert } from '@/lib/resend/client'
 import { sendSlackAlert } from '@/lib/slack/client'
+import { sendTelegramAlert } from '@/lib/telegram/client'
 import { sendSms } from '@/lib/sms/client'
 import { getSmsTemplate, getCustomEmailTemplate, renderTemplate, type MessageTemplates } from '@/lib/recovery/messageTemplates'
 import { type NextRequest, NextResponse } from 'next/server'
 
 type Connection = { user_id: string; access_token: string; scope: 'read_only' | 'read_write' }
-type Profile = { email: string; is_pro: boolean; slack_webhook_url: string | null; message_templates: MessageTemplates; sender_name: string | null; email_alerts_enabled: boolean }
+type Profile = { email: string; is_pro: boolean; slack_webhook_url: string | null; telegram_chat_id: string | null; message_templates: MessageTemplates; sender_name: string | null; email_alerts_enabled: boolean }
 type Payment = {
   id: string
   stripe_invoice_id: string
@@ -83,7 +84,7 @@ export async function GET(request: NextRequest) {
   for (const conn of (connections ?? []) as Connection[]) {
     const { data: profile } = await admin
       .from('profiles')
-      .select('email, is_pro, slack_webhook_url, message_templates, sender_name, email_alerts_enabled')
+      .select('email, is_pro, slack_webhook_url, telegram_chat_id, message_templates, sender_name, email_alerts_enabled')
       .eq('id', conn.user_id)
       .maybeSingle<Profile>()
 
@@ -111,6 +112,11 @@ export async function GET(request: NextRequest) {
             profile.slack_webhook_url,
             `💰 Recovered ${fmt(payment.amount, payment.currency)} from ${payment.customer_name ?? payment.customer_email ?? 'a customer'} via auto-retry`,
           ).catch(err => { sendFailures++; console.error('[cron] slack recovered alert:', payment.id, err) })
+
+          await sendTelegramAlert(
+            profile.telegram_chat_id,
+            `💰 <b>Payment recovered</b>\n${fmt(payment.amount, payment.currency)} from ${payment.customer_name ?? payment.customer_email ?? 'a customer'} — auto-retry succeeded`,
+          ).catch(err => { sendFailures++; console.error('[cron] telegram recovered alert:', payment.id, err) })
 
           if (profile.email_alerts_enabled) {
             await sendOwnerPaymentAlert({

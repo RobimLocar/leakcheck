@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { fetchFailedPayments } from '@/lib/stripe/fetchFailedPayments'
 import { sendPaymentRecoveryEmail, sendOwnerPaymentAlert } from '@/lib/resend/client'
 import { sendSlackAlert } from '@/lib/slack/client'
+import { sendTelegramAlert } from '@/lib/telegram/client'
 import { sendSms } from '@/lib/sms/client'
 import { getSmsTemplate, getCustomEmailTemplate, renderTemplate, type MessageTemplates } from '@/lib/recovery/messageTemplates'
 import { type NextRequest, NextResponse } from 'next/server'
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
   if (newPayments.length > 0) {
     const { data: profile } = await admin
       .from('profiles')
-      .select('is_pro, slack_webhook_url, message_templates, sender_name, email_alerts_enabled')
+      .select('is_pro, slack_webhook_url, telegram_chat_id, message_templates, sender_name, email_alerts_enabled')
       .eq('id', user.id)
       .maybeSingle()
 
@@ -108,6 +109,11 @@ export async function POST(request: NextRequest) {
           profile.slack_webhook_url,
           `🔴 New failed payment: ${formatted} from ${p.customer_name ?? p.customer_email ?? 'a customer'} — ${p.failure_reason}`,
         ).catch(err => console.error('[sync] slack alert:', p.stripe_invoice_id, err))
+
+        await sendTelegramAlert(
+          (profile as { telegram_chat_id?: string | null }).telegram_chat_id,
+          `🔴 <b>Failed payment</b>\n${formatted} from ${p.customer_name ?? p.customer_email ?? 'a customer'}\nReason: ${p.failure_reason}`,
+        ).catch(err => console.error('[sync] telegram alert:', p.stripe_invoice_id, err))
 
         if (profile.email_alerts_enabled && user.email) {
           await sendOwnerPaymentAlert({
