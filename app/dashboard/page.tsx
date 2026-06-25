@@ -768,6 +768,23 @@ const AlertsView = ({
   emailAlertsLoading: boolean
 }) => {
   const [showSlackHelp, setShowSlackHelp] = useState(false)
+  const [emailTesting, setEmailTesting] = useState(false)
+  const [emailTestMsg, setEmailTestMsg] = useState('')
+
+  const testEmailAlert = async () => {
+    setEmailTesting(true)
+    setEmailTestMsg('')
+    try {
+      const res = await fetch('/api/alerts/test-email', { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      setEmailTestMsg(res.ok ? 'Test email sent — check your inbox' : (data.error ?? 'Failed to send'))
+    } catch {
+      setEmailTestMsg('Failed to send')
+    } finally {
+      setEmailTesting(false)
+      setTimeout(() => setEmailTestMsg(''), 4000)
+    }
+  }
   return (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '560px' }}>
 
@@ -805,8 +822,14 @@ const AlertsView = ({
         </button>
       </div>
       {emailAlertsEnabled && (
-        <div style={{ marginTop: '12px', padding: '10px 12px', background: 'rgba(0,255,136,.06)', border: '1px solid rgba(0,255,136,.2)', borderRadius: '7px', fontSize: '12px', color: '#4ade80' }}>
-          ✓ Active — you&apos;ll receive emails at your account address
+        <div style={{ marginTop: '12px', padding: '10px 12px', background: 'rgba(0,255,136,.06)', border: '1px solid rgba(0,255,136,.2)', borderRadius: '7px' }}>
+          <p style={{ margin: '0 0 8px', fontSize: '12px', color: '#4ade80' }}>✓ Active — you&apos;ll receive emails at your account address</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button className="tb-btn out" style={{ fontSize: '12px' }} onClick={testEmailAlert} disabled={emailTesting}>
+              {emailTesting ? 'Sending...' : '✓ Send test email'}
+            </button>
+            {emailTestMsg && <span style={{ fontSize: '12px', color: 'var(--tx2)' }}>{emailTestMsg}</span>}
+          </div>
         </div>
       )}
     </div>
