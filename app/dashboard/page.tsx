@@ -103,12 +103,12 @@ function csvCell(value: string): string {
   return `"${value.replace(/"/g, '""')}"`
 }
 
-function exportPaymentsCsv(payments: DbPayment[]) {
+function exportPaymentsCsv(payments: DbPayment[], isPro: boolean) {
   const header = ['Customer', 'Email', 'Phone', 'Amount', 'Currency', 'Reason', 'Status', 'Date']
   const rows = payments.map(p => [
     p.customer_name ?? '',
-    p.customer_email ?? '',
-    p.customer_phone ?? '',
+    p.customer_email ? (isPro ? p.customer_email : maskEmail(p.customer_email)) : '',
+    p.customer_phone ? (isPro ? p.customer_phone : '•••') : '',
     (p.amount / 100).toFixed(2),
     p.currency.toUpperCase(),
     p.failure_reason,
@@ -125,6 +125,13 @@ function exportPaymentsCsv(payments: DbPayment[]) {
   a.click()
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
+}
+
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@')
+  if (!domain) return '•••@•••'
+  const [host, ...tld] = domain.split('.')
+  return `${local[0]}•••@${host[0]}•••.${tld.join('.')}`
 }
 
 function fmtAgo(d: Date) {
@@ -362,7 +369,7 @@ const PaymentsTable = ({
         <button
           className="tb-btn out"
           style={{ fontSize: '11px', padding: '6px 10px' }}
-          onClick={() => exportPaymentsCsv(filteredPayments)}
+          onClick={() => exportPaymentsCsv(filteredPayments, isPro)}
           disabled={filteredPayments.length === 0}
         >
           <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -409,7 +416,10 @@ const PaymentsTable = ({
               </div>
               <div>
                 <div className="tr-name">{displayName}</div>
-                <div className="tr-email">{p.customer_email ?? ''}</div>
+                <div className="tr-email" title={isPro ? undefined : 'Upgrade to see contact info'}>
+                  {p.customer_email ? (isPro ? p.customer_email : maskEmail(p.customer_email)) : ''}
+                  {!isPro && p.customer_email && <span style={{ marginLeft: '4px', opacity: 0.5 }}>🔒</span>}
+                </div>
               </div>
             </div>
             <div className="tr-amount">−${(p.amount / 100).toFixed(2)}</div>
@@ -475,8 +485,8 @@ const AccountRiskView = ({ allPayments, isPro, canRetry }: { allPayments: DbPaym
             <span>Top Reason</span>
             <span style={{ textAlign: 'right' }}>Risk Score</span>
           </div>
-          {accounts.map((acc, i) => {
-            const displayName = acc.name ?? acc.email ?? 'Unknown'
+          {(isPro ? accounts : accounts.slice(0, 3)).map((acc, i) => {
+            const displayName = acc.name ?? (acc.email ? (isPro ? acc.email : maskEmail(acc.email)) : 'Unknown')
             const color = avatarColor(acc.key)
             const ini = getInitials(acc.name, acc.email)
             const tag = reasonTag(acc.topReason)
@@ -486,7 +496,10 @@ const AccountRiskView = ({ allPayments, isPro, canRetry }: { allPayments: DbPaym
                   <div className="tr-av" style={{ background: `${color}22`, color }}>{ini}</div>
                   <div>
                     <div className="tr-name">{displayName}</div>
-                    <div className="tr-email">{acc.email ?? ''}</div>
+                    <div className="tr-email" title={isPro ? undefined : 'Upgrade to see contact info'}>
+                      {acc.email ? (isPro ? acc.email : maskEmail(acc.email)) : ''}
+                      {!isPro && acc.email && <span style={{ marginLeft: '4px', opacity: 0.5 }}>🔒</span>}
+                    </div>
                   </div>
                 </div>
                 <div className="tr-amount">−${(acc.totalAmount / 100).toFixed(2)}</div>
@@ -506,6 +519,16 @@ const AccountRiskView = ({ allPayments, isPro, canRetry }: { allPayments: DbPaym
               </div>
             )
           })}
+          {!isPro && accounts.length > 3 && (
+            <div style={{ padding: '14px 20px', borderTop: '1px solid var(--bd)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,.02)' }}>
+              <div style={{ fontSize: '12.5px', color: 'var(--tx3)' }}>
+                🔒 {accounts.length - 3} more account{accounts.length - 3 > 1 ? 's' : ''} hidden — upgrade to see all
+              </div>
+              <Link href="/upgrade">
+                <button className="tb-btn red" style={{ fontSize: '12px' }}>See All Accounts →</button>
+              </Link>
+            </div>
+          )}
           {!isPro && (
             <div style={{ padding: '14px 20px', borderTop: '1px solid var(--bd)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontSize: '12.5px', color: 'var(--tx2)' }}>
@@ -1105,7 +1128,8 @@ export default function DashboardPage() {
 
   // ── Derived data ───────────────────────────────────────────────────────────
 
-  const periodDays = period === '7d' ? 7 : period === '30d' ? 30 : period === '90d' ? 90 : 365
+  const periodDaysRaw = period === '7d' ? 7 : period === '30d' ? 30 : period === '90d' ? 90 : 365
+  const periodDays = !isPro ? Math.min(periodDaysRaw, 30) : periodDaysRaw
 
   const periodPayments = useMemo(() => {
     const since = Date.now() - periodDays * 86400000
@@ -1491,9 +1515,20 @@ export default function DashboardPage() {
             </div>
             <div className="tb-right">
               <div className="tb-period">
-                {(['7d', '30d', '90d', '12m'] as const).map(p => (
-                  <div key={p} className={`tb-p${period === p ? ' on' : ''}`} onClick={() => setPeriod(p)}>{p}</div>
-                ))}
+                {(['7d', '30d', '90d', '12m'] as const).map(p => {
+                  const locked = !isPro && (p === '90d' || p === '12m')
+                  return (
+                    <div
+                      key={p}
+                      className={`tb-p${period === p ? ' on' : ''}`}
+                      style={locked ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                      title={locked ? 'Upgrade to Pro to unlock extended history' : undefined}
+                      onClick={() => locked ? (window.location.href = '/upgrade') : setPeriod(p)}
+                    >
+                      {locked ? '🔒 ' : ''}{p}
+                    </div>
+                  )
+                })}
               </div>
               {hasConnection && !isTeamMember && (
                 <button
