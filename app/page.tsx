@@ -420,13 +420,13 @@ export default function LandingPage() {
           </div>
           <p className="hero-note rv d4">No migration · No setup · Never charges without consent · Cancel anytime</p>
 
-          {/* Dashboard preview */}
+          {/* Dashboard preview — Pro view */}
           <div className="db-wrap rv">
             <div className="db-halo" />
             <div className="db-frame">
               <div className="db-bar">
                 <div className="db-dot r" /><div className="db-dot y" /><div className="db-dot g" />
-                <div className="db-url">app.leakcheck.io/dashboard</div>
+                <div className="db-url">getleakcheck.com/dashboard</div>
               </div>
               <div className="db-body">
                 <div className="db-side">
@@ -434,54 +434,66 @@ export default function LandingPage() {
                     <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--red)', boxShadow: '0 0 8px var(--red)' }} />
                     LeakCheck
                   </div>
-                  <div className="db-ni on">
-                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
-                      <rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
-                    </svg>
-                    Dashboard
-                  </div>
-                  <div className="db-ni">
-                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" />
-                    </svg>
-                    Payments
-                  </div>
-                  <div className="db-ni">
-                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    </svg>
-                    Recovery
+                  {[
+                    { icon: <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></>, label: 'Dashboard', on: true },
+                    { icon: <><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></>, label: 'Payments' },
+                    { icon: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></>, label: 'Account Risk' },
+                    { icon: <><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></>, label: 'Recovery' },
+                    { icon: <><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></>, label: 'Email Sequences' },
+                  ].map(({ icon, label, on }) => (
+                    <div key={label} className={`db-ni${on ? ' on' : ''}`}>
+                      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>{icon}</svg>
+                      {label}
+                    </div>
+                  ))}
+                  <div style={{ margin: '12px 10px 0', padding: '6px 8px', background: 'rgba(255,61,61,.08)', border: '1px solid rgba(255,61,61,.15)', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--red)' }} />
+                    <span style={{ fontSize: '10px', color: '#ff8080', fontWeight: 600 }}>Pro · Active</span>
                   </div>
                 </div>
                 <div className="db-main">
                   <div className="db-top">
                     <div className="db-title">Payment Health</div>
-                    <div className="db-per">Last 30 days</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      {['7d', '30d', '90d', '12m'].map(p => (
+                        <div key={p} style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '4px', background: p === '30d' ? 'var(--red)' : 'var(--s1)', color: p === '30d' ? '#fff' : 'var(--tx3)', border: `1px solid ${p === '30d' ? 'var(--red)' : 'var(--bd)'}`, fontWeight: p === '30d' ? 600 : 400 }}>{p}</div>
+                      ))}
+                      <div style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'var(--s1)', border: '1px solid var(--bd)', color: 'var(--tx3)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                        <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+                        Sync
+                      </div>
+                    </div>
                   </div>
                   <div className="db-cards">
                     <div className="db-card"><div className="db-cl">Lost This Month</div><div className="db-cv r">$347.00</div><div className="db-cc">↑ 12% vs last month</div></div>
                     <div className="db-card"><div className="db-cl">Failed Payments</div><div className="db-cv">8</div><div className="db-cc">this month</div></div>
-                    <div className="db-card"><div className="db-cl">Recoverable</div><div className="db-cv g">$312.00</div><div className="db-cc">30-day window</div></div>
+                    <div className="db-card"><div className="db-cl">Recovered</div><div className="db-cv g">$216.00</div><div className="db-cc">↑ 63% recovery rate</div></div>
                   </div>
-                  <div className="db-th"><span>Customer</span><span>Amount</span><span>Reason</span><span>Date</span></div>
+                  <div className="db-th" style={{ gridTemplateColumns: '1fr auto auto auto auto' }}>
+                    <span>Customer</span><span>Amount</span><span>Reason</span><span>Date</span><span>Status</span>
+                  </div>
                   {[
-                    { name: 'Alex Johnson', amt: '−$49', tag: 'ex', label: 'Expired Card', date: 'Jun 1' },
-                    { name: 'Sarah Chen', amt: '−$99', tag: 'dc', label: 'Bank Decline', date: 'Jun 3' },
-                    { name: 'Mike Torres', amt: '−$29', tag: 'fu', label: 'Insuff. Funds', date: 'Jun 5' },
-                    { name: 'Emma Davis', amt: '−$79', tag: 'ex', label: 'Expired Card', date: 'Jun 7' },
+                    { ini: 'AJ', color: '#6366f1', name: 'Alex Johnson', email: 'alex@…', amt: '−$49', tag: 'ex', label: 'Expired Card', date: 'Jun 1', status: 'recovered' },
+                    { ini: 'SC', color: '#f59e0b', name: 'Sarah Chen', email: 'sarah@…', amt: '−$99', tag: 'dc', label: 'Bank Decline', date: 'Jun 3', status: 'retrying' },
+                    { ini: 'MT', color: '#10b981', name: 'Mike Torres', email: 'mike@…', amt: '−$29', tag: 'fu', label: 'Insuff. Funds', date: 'Jun 5', status: 'email' },
+                    { ini: 'ED', color: '#ec4899', name: 'Emma Davis', email: 'emma@…', amt: '−$79', tag: 'ex', label: 'Expired Card', date: 'Jun 7', status: 'retrying' },
                   ].map(row => (
-                    <div className="db-row" key={row.name}>
-                      <span className="db-rn">{row.name}</span>
+                    <div className="db-row" key={row.name} style={{ gridTemplateColumns: '1fr auto auto auto auto' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                        <span style={{ width: 22, height: 22, borderRadius: '50%', background: `${row.color}22`, color: row.color, fontSize: '8px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{row.ini}</span>
+                        <span>
+                          <span className="db-rn" style={{ display: 'block' }}>{row.name}</span>
+                          <span style={{ fontSize: '9px', color: 'var(--tx3)' }}>{row.email}</span>
+                        </span>
+                      </span>
                       <span className="db-ra">{row.amt}</span>
                       <span className={`tag ${row.tag}`}>{row.label}</span>
                       <span style={{ fontSize: '10px', color: 'var(--tx3)' }}>{row.date}</span>
+                      <span style={{ fontSize: '9px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px', whiteSpace: 'nowrap', background: row.status === 'recovered' ? 'rgba(0,255,136,.1)' : 'rgba(255,255,255,.05)', color: row.status === 'recovered' ? 'var(--grn)' : 'var(--tx3)' }}>
+                        {row.status === 'recovered' ? '✓ Recovered' : row.status === 'retrying' ? '↻ Retrying' : '✉ Email sent'}
+                      </span>
                     </div>
                   ))}
-                  <div className="db-banner">
-                    <span className="db-bt">💡 You have <strong>$347</strong> recoverable right now</span>
-                    <button className="db-bb">Activate Recovery → $29/mo</button>
-                  </div>
                 </div>
               </div>
             </div>
