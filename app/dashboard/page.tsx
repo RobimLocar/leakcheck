@@ -752,6 +752,7 @@ const EmailSequenceView = ({ allPayments }: { allPayments: DbPayment[] }) => {
 const AlertsView = ({
   slackInput, setSlackInput, slackSaving, saveSlackWebhook,
   slackTesting, testSlackAlert, slackWebhookUrl, slackSaveMsg, slackTestMsg,
+  emailAlertsEnabled, toggleEmailAlerts, emailAlertsLoading,
 }: {
   slackInput: string
   setSlackInput: (s: string) => void
@@ -762,11 +763,58 @@ const AlertsView = ({
   slackWebhookUrl: string
   slackSaveMsg: string
   slackTestMsg: string
+  emailAlertsEnabled: boolean
+  toggleEmailAlerts: () => void
+  emailAlertsLoading: boolean
 }) => (
-  <div className="table-card" style={{ maxWidth: '560px' }}>
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '560px' }}>
+
+  {/* Email alerts card */}
+  <div className="table-card">
+    <div className="table-head">
+      <div className="table-title">Email Alerts</div>
+      <div style={{ fontSize: '12px', color: 'var(--tx3)' }}>Simplest option — no extra setup needed</div>
+    </div>
+    <div style={{ padding: '8px 20px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+        <div>
+          <p style={{ fontSize: '13px', color: 'var(--tx2)', margin: '0 0 4px', lineHeight: '1.6' }}>
+            Get an email when a payment fails or is recovered.
+          </p>
+          <p style={{ fontSize: '12px', color: 'var(--tx3)', margin: 0 }}>
+            Sent directly to your account email.
+          </p>
+        </div>
+        <button
+          onClick={toggleEmailAlerts}
+          disabled={emailAlertsLoading}
+          style={{
+            flexShrink: 0, width: '44px', height: '24px', borderRadius: '12px', border: 'none',
+            background: emailAlertsEnabled ? 'var(--grn)' : 'var(--bd2)',
+            cursor: emailAlertsLoading ? 'not-allowed' : 'pointer',
+            position: 'relative', transition: 'background .2s', opacity: emailAlertsLoading ? 0.6 : 1,
+          }}
+        >
+          <span style={{
+            position: 'absolute', top: '3px', width: '18px', height: '18px', borderRadius: '50%',
+            background: '#fff', transition: 'left .2s',
+            left: emailAlertsEnabled ? '23px' : '3px',
+          }} />
+        </button>
+      </div>
+      {emailAlertsEnabled && (
+        <div style={{ marginTop: '12px', padding: '10px 12px', background: 'rgba(0,255,136,.06)', border: '1px solid rgba(0,255,136,.2)', borderRadius: '7px', fontSize: '12px', color: '#4ade80' }}>
+          ✓ Active — you&apos;ll receive emails at your account address
+        </div>
+      )}
+    </div>
+  </div>
+
+  {/* Slack card */}
+  <div className="table-card">
     <div className="table-head">
       <div className="table-title">Slack Alerts</div>
-      <div style={{ fontSize: '12px', color: 'var(--tx3)' }}>Get notified instantly — no need to check the dashboard</div>
+      <div style={{ fontSize: '12px', color: 'var(--tx3)' }}>Get notified in your Slack workspace</div>
     </div>
     <div style={{ padding: '8px 20px 24px' }}>
 
@@ -826,6 +874,8 @@ const AlertsView = ({
         </p>
       )}
     </div>
+  </div>
+
   </div>
 )
 
@@ -1013,6 +1063,8 @@ export default function DashboardPage() {
   const [slackSaveMsg, setSlackSaveMsg] = useState('')
   const [slackTesting, setSlackTesting] = useState(false)
   const [slackTestMsg, setSlackTestMsg] = useState('')
+  const [emailAlertsEnabled, setEmailAlertsEnabled] = useState(false)
+  const [emailAlertsLoading, setEmailAlertsLoading] = useState(false)
   const [portalLoading, setPortalLoading] = useState(false)
   const [portalError, setPortalError] = useState('')
   const [templates, setTemplates] = useState<{ sms: Record<StepKey, string>; email: Record<StepKey, string> }>({
@@ -1045,7 +1097,7 @@ export default function DashboardPage() {
     if (user) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('is_pro, plan_type, slack_webhook_url, message_templates, sender_name, team_owner_id')
+        .select('is_pro, plan_type, slack_webhook_url, message_templates, sender_name, team_owner_id, email_alerts_enabled')
         .eq('id', user.id)
         .maybeSingle()
       if (profile?.is_pro) setIsPro(true)
@@ -1070,6 +1122,7 @@ export default function DashboardPage() {
         setSlackWebhookUrl(profile.slack_webhook_url)
         setSlackInput(profile.slack_webhook_url)
       }
+      setEmailAlertsEnabled(!!profile?.email_alerts_enabled)
       setSenderName(profile?.sender_name ?? '')
       const mt = profile?.message_templates as MessageTemplates | undefined
       setTemplates({
@@ -1341,6 +1394,20 @@ export default function DashboardPage() {
       setSyncing(false)
       syncResultTimer.current = setTimeout(() => setSyncResult('idle'), 3000)
     }
+  }
+
+  // ── Email alerts toggle ───────────────────────────────────────────────────
+
+  const toggleEmailAlerts = async () => {
+    setEmailAlertsLoading(true)
+    const next = !emailAlertsEnabled
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      await supabase.from('profiles').update({ email_alerts_enabled: next }).eq('id', user.id)
+      setEmailAlertsEnabled(next)
+    }
+    setEmailAlertsLoading(false)
   }
 
   // ── Slack alerts ──────────────────────────────────────────────────────────
@@ -1687,6 +1754,9 @@ export default function DashboardPage() {
                 slackWebhookUrl={slackWebhookUrl}
                 slackSaveMsg={slackSaveMsg}
                 slackTestMsg={slackTestMsg}
+                emailAlertsEnabled={emailAlertsEnabled}
+                toggleEmailAlerts={toggleEmailAlerts}
+                emailAlertsLoading={emailAlertsLoading}
               />
             ) : <ProUpgradeCard feature={PRO_FEATURE_LABELS[activeNav]} />)}
 

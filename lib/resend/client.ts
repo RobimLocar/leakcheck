@@ -46,6 +46,60 @@ function lightWrapper(bodyHtml: string): string {
 </table>`
 }
 
+// Sent to the merchant's own email when a customer payment fails or recovers.
+// Recipient is a LeakCheck user so dark brand theme is appropriate.
+export async function sendOwnerPaymentAlert(opts: {
+  to: string
+  event: 'failed' | 'recovered'
+  customerName: string | null
+  amount: number
+  currency: string
+  failureReason?: string
+}): Promise<void> {
+  const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: opts.currency.toUpperCase() }).format(opts.amount / 100)
+  const isFailed = opts.event === 'failed'
+  const accent = isFailed ? '#ff3d3d' : '#22c55e'
+  const icon = isFailed ? '🔴' : '💰'
+  const subject = isFailed
+    ? `${icon} Payment failed — ${fmt} from ${opts.customerName ?? 'a customer'}`
+    : `${icon} Payment recovered — ${fmt} from ${opts.customerName ?? 'a customer'}`
+
+  const { error } = await resend.emails.send({
+    from: DEFAULT_FROM,
+    to: opts.to,
+    subject,
+    html: `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;font-family:${FONT};">
+  <tr><td align="center">
+    <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;padding:40px 32px;">
+      <tr><td>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+          <tr>
+            <td style="padding-right:8px;"><div style="width:8px;height:8px;border-radius:50%;background:#ff3d3d;"></div></td>
+            <td><span style="color:#fff;font-size:14px;font-weight:700;">LeakCheck</span></td>
+          </tr>
+        </table>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:20px 24px;margin-bottom:24px;">
+          <tr><td>
+            <p style="color:#666;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin:0 0 6px;">${isFailed ? 'Payment failed' : 'Payment recovered'}</p>
+            <p style="color:${accent};font-size:26px;font-weight:800;margin:0 0 4px;letter-spacing:-0.02em;">${fmt}</p>
+            <p style="color:#555;font-size:13px;margin:0;">${opts.customerName ?? 'Unknown customer'}${opts.failureReason ? ` · ${opts.failureReason}` : ''}</p>
+          </td></tr>
+        </table>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+          <tr><td style="background:#ff3d3d;border-radius:8px;">
+            <a href="${SITE_URL}/dashboard" style="display:inline-block;color:#fff;padding:11px 22px;text-decoration:none;font-weight:700;font-size:13px;">View Dashboard →</a>
+          </td></tr>
+        </table>
+        <p style="color:#333;font-size:11px;margin:0;">You're receiving this because you have email alerts enabled in LeakCheck. <a href="${SITE_URL}/dashboard" style="color:#555;">Manage alerts</a></p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>`,
+  })
+  if (error) console.error('[resend] owner payment alert failed:', error.message)
+}
+
 export async function sendOperatorAlert(subject: string, message: string): Promise<void> {
   const to = process.env.OPERATOR_ALERT_EMAIL
   if (!to) return

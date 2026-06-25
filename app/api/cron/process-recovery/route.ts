@@ -2,14 +2,14 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { payInvoice } from '@/lib/stripe/connectedAccountApi'
 import { isRetryDue, MAX_RETRIES } from '@/lib/recovery/retryPolicy'
 import { nextEmailStep } from '@/lib/recovery/emailSequence'
-import { sendRecoverySequenceEmail, sendOperatorAlert } from '@/lib/resend/client'
+import { sendRecoverySequenceEmail, sendOperatorAlert, sendOwnerPaymentAlert } from '@/lib/resend/client'
 import { sendSlackAlert } from '@/lib/slack/client'
 import { sendSms } from '@/lib/sms/client'
 import { getSmsTemplate, getCustomEmailTemplate, renderTemplate, type MessageTemplates } from '@/lib/recovery/messageTemplates'
 import { type NextRequest, NextResponse } from 'next/server'
 
 type Connection = { user_id: string; access_token: string; scope: 'read_only' | 'read_write' }
-type Profile = { email: string; is_pro: boolean; slack_webhook_url: string | null; message_templates: MessageTemplates; sender_name: string | null }
+type Profile = { email: string; is_pro: boolean; slack_webhook_url: string | null; message_templates: MessageTemplates; sender_name: string | null; email_alerts_enabled: boolean }
 type Payment = {
   id: string
   stripe_invoice_id: string
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
   for (const conn of (connections ?? []) as Connection[]) {
     const { data: profile } = await admin
       .from('profiles')
-      .select('email, is_pro, slack_webhook_url, message_templates, sender_name')
+      .select('email, is_pro, slack_webhook_url, message_templates, sender_name, email_alerts_enabled')
       .eq('id', conn.user_id)
       .maybeSingle<Profile>()
 
@@ -111,6 +111,16 @@ export async function GET(request: NextRequest) {
             profile.slack_webhook_url,
             `💰 Recovered ${fmt(payment.amount, payment.currency)} from ${payment.customer_name ?? payment.customer_email ?? 'a customer'} via auto-retry`,
           ).catch(err => { sendFailures++; console.error('[cron] slack recovered alert:', payment.id, err) })
+
+          if (profile.email_alerts_enabled) {
+            await sendOwnerPaymentAlert({
+              to: profile.email,
+              event: 'recovered',
+              customerName: payment.customer_name,
+              amount: payment.amount,
+              currency: payment.currency,
+            }).catch(err => { sendFailures++; console.error('[cron] owner email alert recovered:', payment.id, err) })
+          }
         } else {
           const newRetryCount = payment.retry_count + 1
           await admin.from('failed_payments').update({
