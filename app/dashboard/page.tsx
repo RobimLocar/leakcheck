@@ -766,7 +766,9 @@ const AlertsView = ({
   emailAlertsEnabled: boolean
   toggleEmailAlerts: () => void
   emailAlertsLoading: boolean
-}) => (
+}) => {
+  const [showSlackHelp, setShowSlackHelp] = useState(false)
+  return (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '560px' }}>
 
   {/* Email alerts card */}
@@ -810,10 +812,66 @@ const AlertsView = ({
     </div>
   </div>
 
+  {/* Slack help modal */}
+  {showSlackHelp && (
+    <div
+      onClick={() => setShowSlackHelp(false)}
+      style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background: '#111', border: '1px solid #222', borderRadius: '14px', padding: '28px', maxWidth: '480px', width: '100%', position: 'relative' }}
+      >
+        <button
+          onClick={() => setShowSlackHelp(false)}
+          style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: 'var(--tx3)', cursor: 'pointer', fontSize: '18px', lineHeight: 1, padding: '4px' }}
+        >✕</button>
+
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <span style={{ fontSize: '18px' }}>💬</span>
+            <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--tx)' }}>How to connect Slack</span>
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--tx3)', margin: 0 }}>Takes about 2 minutes. No technical knowledge needed.</p>
+        </div>
+
+        {[
+          { n: 1, label: 'Open Slack API in a new tab', detail: 'Go to: api.slack.com/apps (sign in with your Slack account if asked)' },
+          { n: 2, label: 'Create a new App', detail: 'Click "Create New App" → choose "From scratch" → name it LeakCheck Alerts → select your workspace → click Create App' },
+          { n: 3, label: 'Enable Incoming Webhooks', detail: 'In the left menu click "Incoming Webhooks" → toggle it ON (turns green)' },
+          { n: 4, label: 'Add webhook to your channel', detail: 'Click "Add New Webhook to Workspace" → choose the channel you want (e.g. #novo-canal) → click Allow' },
+          { n: 5, label: 'Copy the webhook URL', detail: 'A URL starting with https://hooks.slack.com/services/... will appear — click Copy next to it' },
+          { n: 6, label: 'Paste it here and save', detail: 'Paste the URL in the field below → click Save → then click "✓ Send test message" to confirm it works' },
+        ].map(({ n, label, detail }) => (
+          <div key={n} style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
+            <div style={{ flexShrink: 0, width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(99,102,241,.15)', border: '1px solid rgba(99,102,241,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: '#a5b4fc' }}>{n}</div>
+            <div>
+              <p style={{ margin: '0 0 2px', fontSize: '13px', fontWeight: 600, color: 'var(--tx)', lineHeight: 1.4 }}>{label}</p>
+              <p style={{ margin: 0, fontSize: '12px', color: 'var(--tx3)', lineHeight: 1.6 }}>{detail}</p>
+            </div>
+          </div>
+        ))}
+
+        <div style={{ marginTop: '4px', padding: '10px 12px', background: 'rgba(99,102,241,.06)', border: '1px solid rgba(99,102,241,.2)', borderRadius: '7px' }}>
+          <p style={{ margin: 0, fontSize: '12px', color: '#a5b4fc', lineHeight: 1.6 }}>
+            💡 If you get stuck at any step, send a screenshot to support and we&apos;ll walk you through it.
+          </p>
+        </div>
+      </div>
+    </div>
+  )}
+
   {/* Slack card */}
   <div className="table-card">
     <div className="table-head">
-      <div className="table-title">Slack Alerts</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="table-title">Slack Alerts</div>
+        <button
+          onClick={() => setShowSlackHelp(true)}
+          title="How to set up Slack"
+          style={{ width: '18px', height: '18px', borderRadius: '50%', border: '1px solid var(--bd2)', background: 'var(--bg)', color: 'var(--tx3)', fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+        >?</button>
+      </div>
       <div style={{ fontSize: '12px', color: 'var(--tx3)' }}>Get notified in your Slack workspace</div>
     </div>
     <div style={{ padding: '8px 20px 24px' }}>
@@ -877,7 +935,8 @@ const AlertsView = ({
   </div>
 
   </div>
-)
+  )
+}
 
 type TeamInvite = { id: string; email: string; accepted_at: string | null; created_at: string }
 
