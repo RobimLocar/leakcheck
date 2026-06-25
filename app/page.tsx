@@ -9,12 +9,12 @@ const TICKER_ITEMS = [
   '⚡ <strong>Mike K.</strong> recovered $1,240 in the first month',
   '💸 20–40% of subscription churn is preventable',
   '✅ <strong>Sara V.</strong> found $340 in expired cards in 2 minutes',
-  '🔍 Average founder loses <strong>$340/month</strong> without knowing',
+  '🔍 Average team loses <strong>$340/month</strong> without knowing',
   '⚡ <strong>Paulo S.</strong> recovered $2,100 — zero effort after setup',
   '📊 80–90% recovery rate with smart retry + email sequence',
   '✅ <strong>Tom M.</strong> · "ROI on day one. Should be built into Stripe."',
   '💡 Connect your Stripe in 60 seconds — free forever',
-  '🔥 First 20 founders get lifetime access for $149',
+  '🔥 First 20 spots get lifetime access for $149',
 ]
 
 interface Testimonial {
@@ -506,7 +506,7 @@ export default function LandingPage() {
           <div className="metrics">
             {[
               { val: '0%', target: 40, pre: '', suf: '%+', cls: 'r', label: 'of all churn is involuntary', tag: 'mt-r', tagText: 'preventable' },
-              { val: '$0', target: 340, pre: '$', suf: '', cls: '', label: 'avg lost per founder / month', tag: '', tagText: '' },
+              { val: '$0', target: 340, pre: '$', suf: '', cls: '', label: 'avg lost per team / month', tag: '', tagText: '' },
               { val: '0%', target: 90, pre: '', suf: '%', cls: 'g', label: 'recovery rate with automation', tag: 'mt-g', tagText: 'verified' },
               { val: '0s', target: 60, pre: '', suf: 's', cls: '', label: 'to connect and see your number', tag: '', tagText: '' },
             ].map((m, i) => (
@@ -582,7 +582,7 @@ export default function LandingPage() {
                 <div className="bc-num">03</div>
                 <div className="bc-icon">⚡</div>
                 <div className="bc-t">Recover Automatically</div>
-                <p className="bc-d">Smart retries + email & SMS recovery sequence, in your own words — write it yourself or let AI draft it. Most founders recover day one.</p>
+                <p className="bc-d">Smart retries + email & SMS recovery sequence, in your own words — write it yourself or let AI draft it. Most teams recover day one.</p>
                 <div className="bc-recover" id="bentoRecover">
                   {recoveryItems.map((item, i) => (
                     <div key={i} className={`bc-r-item${item.recovered ? ' recovered' : ''}`}>
@@ -643,9 +643,9 @@ export default function LandingPage() {
       <div className="sw">
         <div className="pad">
           <div className="inn">
-            <div className="label rv">What founders say</div>
+            <div className="label rv">What teams say</div>
             <h2 className="h2 rv d1">They didn&apos;t know.<br />Now they do.</h2>
-            <p className="sub rv d2" style={{ marginTop: '14px' }}>Real founders. Real numbers. Zero setup required.</p>
+            <p className="sub rv d2" style={{ marginTop: '14px' }}>Real teams. Real numbers. Zero setup required.</p>
             <div className="tscene rv">
               <div className="tft" /><div className="tfb" /><div className="tfl" /><div className="tfr" />
               <div className="t3d">
@@ -691,12 +691,12 @@ export default function LandingPage() {
                 <div key={f} className="pc-f"><div className="pc-ck">✓</div>{f}</div>
               ))}
               <Link href="/upgrade" className="pc-cta red" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>Start recovering — $29/mo</Link>
-              <p className="pc-roi">⚡ Average founder recovers $340/mo · ROI = 11x</p>
+              <p className="pc-roi">⚡ Average team recovers $340/mo · ROI = 11x</p>
             </div>
           </div>
           <div className="ltd rv">
             <div>
-              <div className="ltd-t">🔥 Lifetime Deal — First 20 founders only</div>
+              <div className="ltd-t">🔥 Lifetime Deal — First 20 spots only</div>
               <div className="ltd-d">Pay once, use forever. <strong>$149</strong> — saves $349/year vs monthly.</div>
             </div>
             <Link href="/upgrade" className="btn btn-o" style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>Get Lifetime Deal →</Link>
@@ -767,7 +767,7 @@ export default function LandingPage() {
           <li><Link href="/privacy">Privacy</Link></li>
           <li><Link href="/terms">Terms</Link></li>
         </ul>
-        <div className="fn">© {new Date().getFullYear()} LeakCheck · Built for indie founders</div>
+        <div className="fn">© {new Date().getFullYear()} LeakCheck · Built for SaaS teams</div>
       </footer>
     </>
   )

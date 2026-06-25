@@ -139,7 +139,7 @@ export default function UpgradePage() {
         <div className="page-header">
           <div className="page-badge">
             <div className="badge-dot" />
-            37 founders upgraded this week
+            37 teams upgraded this week
           </div>
           <h1 className="page-h1">
             Stop losing money<br />you&apos;ve already earned.
@@ -179,7 +179,7 @@ export default function UpgradePage() {
               ))}
             </div>
             <span>
-              <strong style={{ color: 'var(--tx)' }}>200+ founders</strong> already recovering
+              <strong style={{ color: 'var(--tx)' }}>200+ teams</strong> already recovering
             </span>
           </div>
           <div className="sp-divider" />
@@ -222,7 +222,7 @@ export default function UpgradePage() {
             <div className="pc-f"><div className="pc-ck">✓</div>Failed payment dashboard</div>
             <div className="pc-f"><div className="pc-ck">✓</div>Breakdown by failure reason</div>
             <div className="pc-f"><div className="pc-ck">✓</div>Customer list</div>
-            <div className="pc-f"><div className="pc-ck">✓</div>90-day history</div>
+            <div className="pc-f"><div className="pc-ck">✓</div>12-month history</div>
             <div className="pc-f"><div className="pc-x">✕</div><span style={{ opacity: 0.5 }}>Auto-recovery</span></div>
             <div className="pc-f"><div className="pc-x">✕</div><span style={{ opacity: 0.5 }}>Recovery emails</span></div>
             <div className="pc-f"><div className="pc-x">✕</div><span style={{ opacity: 0.5 }}>Slack alerts</span></div>
@@ -262,12 +262,12 @@ export default function UpgradePage() {
           <div className="pc">
             <div className="pc-plan">🔥 Lifetime Deal</div>
             <div className="pc-price"><sup>$</sup>149</div>
-            <p className="pc-desc">Pay once. Use forever.<br />First 20 founders only.</p>
+            <p className="pc-desc">Pay once. Use forever.<br />First 20 spots only.</p>
             <div className="pc-div" />
             <div className="pc-f"><div className="pc-ck">✓</div>Everything in Recovery</div>
             <div className="pc-f"><div className="pc-ck">✓</div>All future features included</div>
-            <div className="pc-f"><div className="pc-ck">✓</div>Founder badge + Discord access</div>
-            <div className="pc-f"><div className="pc-ck">✓</div>Direct roadmap input</div>
+            <div className="pc-f"><div className="pc-ck">✓</div>Team member access (up to 3)</div>
+            <div className="pc-f"><div className="pc-ck">✓</div>Monthly CFO recovery report</div>
             <div className="pc-f" style={{ opacity: 0, pointerEvents: 'none' }}><div className="pc-x" /></div>
             <div className="pc-f" style={{ opacity: 0, pointerEvents: 'none' }}><div className="pc-x" /></div>
             <button

@@ -781,8 +781,10 @@ const AlertsView = ({
   </div>
 )
 
-const SettingsCard = ({
-  userEmail, isPro, hasConnection, stripeAccountId, connectionScope, portalLoading, portalError, openBillingPortal,
+type TeamInvite = { id: string; email: string; accepted_at: string | null; created_at: string }
+
+function SettingsCard({
+  userEmail, isPro, hasConnection, stripeAccountId, connectionScope, portalLoading, portalError, openBillingPortal, isTeamMember, teamOwnerEmail,
 }: {
   userEmail: string
   isPro: boolean
@@ -792,7 +794,40 @@ const SettingsCard = ({
   portalLoading: boolean
   portalError: string
   openBillingPortal: () => void
-}) => (
+  isTeamMember: boolean
+  teamOwnerEmail: string | null
+}) {
+  const [invites, setInvites] = useState<TeamInvite[]>([])
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteLoading, setInviteLoading] = useState(false)
+  const [inviteMsg, setInviteMsg] = useState('')
+
+  useEffect(() => {
+    if (!isPro || isTeamMember) return
+    fetch('/api/team/members').then(r => r.json()).then(d => setInvites(d.invites ?? []))
+  }, [isPro, isTeamMember])
+
+  const sendInvite = async () => {
+    if (!inviteEmail.trim()) return
+    setInviteLoading(true); setInviteMsg('')
+    const res = await fetch('/api/team/invite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: inviteEmail.trim() }) })
+    const data = await res.json()
+    if (res.ok) {
+      setInviteMsg('Invite sent!')
+      setInviteEmail('')
+      fetch('/api/team/members').then(r => r.json()).then(d => setInvites(d.invites ?? []))
+    } else {
+      setInviteMsg(data.error ?? 'Failed to send invite')
+    }
+    setInviteLoading(false)
+  }
+
+  const removeInvite = async (id: string) => {
+    await fetch('/api/team/members', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    setInvites(prev => prev.filter(i => i.id !== id))
+  }
+
+  return (
   <div className="table-card" style={{ maxWidth: '520px' }}>
     <div className="table-head">
       <div className="table-title">Account Settings</div>
@@ -855,9 +890,51 @@ const SettingsCard = ({
           <span style={{ fontSize: '12px', color: 'var(--red)' }}>{portalError}</span>
         )}
       </div>
+
+      {/* Team Members — Pro owners only */}
+      {isPro && !isTeamMember && (
+        <div style={{ padding: '20px 20px 24px', borderTop: '1px solid var(--bd)' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--tx2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '14px' }}>
+            Team Members <span style={{ fontWeight: 400, color: 'var(--tx3)', textTransform: 'none', letterSpacing: 0 }}>({invites.length}/3)</span>
+          </div>
+          {invites.map(inv => (
+            <div key={inv.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--bd)' }}>
+              <div>
+                <div style={{ fontSize: '13px', color: 'var(--tx)' }}>{inv.email}</div>
+                <div style={{ fontSize: '11px', color: inv.accepted_at ? 'var(--grn)' : 'var(--tx3)', marginTop: '2px' }}>{inv.accepted_at ? 'Accepted' : 'Pending invite'}</div>
+              </div>
+              <button className="tb-btn out" style={{ fontSize: '11px', padding: '4px 10px' }} onClick={() => removeInvite(inv.id)}>Remove</button>
+            </div>
+          ))}
+          {invites.length < 3 && (
+            <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+              <input
+                type="email"
+                placeholder="teammate@company.com"
+                value={inviteEmail}
+                onChange={e => setInviteEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sendInvite()}
+                style={{ flex: 1, background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', color: 'var(--tx)', outline: 'none' }}
+              />
+              <button className="tb-btn red" style={{ fontSize: '12px' }} onClick={sendInvite} disabled={inviteLoading}>
+                {inviteLoading ? '...' : 'Invite'}
+              </button>
+            </div>
+          )}
+          {inviteMsg && <div style={{ fontSize: '12px', marginTop: '8px', color: inviteMsg.includes('sent') ? 'var(--grn)' : 'var(--red)' }}>{inviteMsg}</div>}
+        </div>
+      )}
+
+      {/* Team member view */}
+      {isTeamMember && teamOwnerEmail && (
+        <div style={{ padding: '16px 20px', borderTop: '1px solid var(--bd)', background: 'rgba(255,193,7,.05)', borderRadius: '0 0 12px 12px' }}>
+          <div style={{ fontSize: '12px', color: '#f59e0b' }}>You are viewing <strong>{teamOwnerEmail}</strong>&apos;s account as a read-only team member.</div>
+        </div>
+      )}
     </div>
   </div>
-)
+  )
+}
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -878,6 +955,8 @@ export default function DashboardPage() {
   const [connectionScope, setConnectionScope] = useState<'read_only' | 'read_write' | null>(null)
   const [userEmail, setUserEmail] = useState('')
   const [isPro, setIsPro] = useState(false)
+  const [isTeamMember, setIsTeamMember] = useState(false)
+  const [teamOwnerEmail, setTeamOwnerEmail] = useState<string | null>(null)
   const [slackWebhookUrl, setSlackWebhookUrl] = useState('')
   const [slackInput, setSlackInput] = useState('')
   const [slackSaving, setSlackSaving] = useState(false)
@@ -916,10 +995,27 @@ export default function DashboardPage() {
     if (user) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('is_pro, plan_type, slack_webhook_url, message_templates, sender_name')
+        .select('is_pro, plan_type, slack_webhook_url, message_templates, sender_name, team_owner_id')
         .eq('id', user.id)
         .maybeSingle()
       if (profile?.is_pro) setIsPro(true)
+      if (profile?.team_owner_id) {
+        setIsTeamMember(true)
+        // Fetch owner data via API (admin client bypasses RLS)
+        const res = await fetch('/api/team/dashboard-data')
+        if (res.ok) {
+          const td = await res.json()
+          if (td.ownerEmail) setTeamOwnerEmail(td.ownerEmail)
+          setHasConnection(!!td.connection)
+          if (td.connection) {
+            setStripeAccountId(td.connection.stripe_account_id)
+            setConnectionScope(td.connection.scope)
+          }
+          setAllPayments(td.payments ?? [])
+        }
+        setLoading(false)
+        return
+      }
       if (profile?.slack_webhook_url) {
         setSlackWebhookUrl(profile.slack_webhook_url)
         setSlackInput(profile.slack_webhook_url)
@@ -1359,6 +1455,12 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+          {isTeamMember && teamOwnerEmail && (
+            <div style={{ margin: '0 8px 8px', background: 'rgba(255,193,7,.08)', border: '1px solid rgba(255,193,7,.2)', borderRadius: '8px', padding: '8px 10px' }}>
+              <div style={{ fontSize: '10px', color: '#f59e0b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Viewing as team member</div>
+              <div style={{ fontSize: '11px', color: 'var(--tx2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{teamOwnerEmail}</div>
+            </div>
+          )}
           <div className="sb-bottom">
             <div className="sb-user">
               <div className="sb-avatar">{userInitials}</div>
@@ -1367,7 +1469,7 @@ export default function DashboardPage() {
                   {userEmail || '—'}
                 </div>
                 <div className="sb-uemail" style={isPro ? { color: 'var(--grn)' } : undefined}>
-                  {isPro ? 'Pro plan' : 'Free plan'}
+                  {isPro ? 'Pro plan' : isTeamMember ? 'Team member' : 'Free plan'}
                 </div>
               </div>
             </div>
@@ -1537,6 +1639,8 @@ export default function DashboardPage() {
                 portalLoading={portalLoading}
                 portalError={portalError}
                 openBillingPortal={openBillingPortal}
+                isTeamMember={isTeamMember}
+                teamOwnerEmail={teamOwnerEmail}
               />
             )}
 

@@ -238,6 +238,44 @@ export async function sendRecoverySequenceEmail(
   if (error) console.error(`[resend] sequence email (step ${step}) failed:`, error.message)
 }
 
+export async function sendTeamInvite(opts: {
+  to: string
+  ownerEmail: string
+  acceptUrl: string
+}): Promise<void> {
+  const { error } = await resend.emails.send({
+    from: DEFAULT_FROM,
+    to: opts.to,
+    subject: `${opts.ownerEmail} invited you to their LeakCheck dashboard`,
+    html: `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;font-family:${FONT};">
+  <tr><td align="center">
+    <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;padding:48px 32px;">
+      <tr><td>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+          <tr>
+            <td style="padding-right:8px;"><div style="width:8px;height:8px;border-radius:50%;background:#ff3d3d;"></div></td>
+            <td><span style="color:#fff;font-size:15px;font-weight:700;letter-spacing:-0.01em;">LeakCheck</span></td>
+          </tr>
+        </table>
+        <h1 style="color:#fff;font-size:22px;font-weight:800;margin:0 0 12px;letter-spacing:-0.02em;">You're invited</h1>
+        <p style="color:#999;font-size:14px;line-height:1.6;margin:0 0 24px;">
+          <strong style="color:#fff;">${escapeHtml(opts.ownerEmail)}</strong> has invited you to view their payment recovery dashboard on LeakCheck.
+        </p>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+          <tr><td style="background:#ff3d3d;border-radius:10px;">
+            <a href="${opts.acceptUrl}" style="display:inline-block;color:#fff;padding:14px 28px;text-decoration:none;font-weight:700;font-size:14px;">Accept Invitation →</a>
+          </td></tr>
+        </table>
+        <p style="color:#555;font-size:12px;line-height:1.6;margin:0;">If you don't have a LeakCheck account, you'll be prompted to create one first. This link expires after use.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>`,
+  })
+  if (error) console.error('[resend] team invite failed:', error.message)
+}
+
 export type CfoReportProps = {
   userEmail: string
   month: string
