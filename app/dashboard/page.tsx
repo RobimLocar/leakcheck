@@ -835,7 +835,7 @@ function SettingsCard({
     <div style={{ padding: '8px 20px 24px' }}>
       {[
         { label: 'Email', value: userEmail || '—' },
-        { label: 'Plan', value: isPro ? 'Pro' : 'Free' },
+        { label: 'Plan', value: isPro ? 'Pro' : isTeamMember ? 'Team member' : 'Free' },
       ].map(row => (
         <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--bd)' }}>
           <div style={{ fontSize: '13px', color: 'var(--tx2)' }}>{row.label}</div>
@@ -866,17 +866,19 @@ function SettingsCard({
         </div>
       )}
       <div style={{ paddingTop: '20px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-        <Link href={hasConnection ? '/onboarding?reconnect=true' : '/onboarding'}>
-          <button className="tb-btn out" style={{ fontSize: '12px' }}>
-            {hasConnection ? 'Reconnect Stripe' : 'Connect Stripe'}
-          </button>
-        </Link>
-        {isPro && hasConnection && connectionScope === 'read_only' && (
+        {!isTeamMember && (
+          <Link href={hasConnection ? '/onboarding?reconnect=true' : '/onboarding'}>
+            <button className="tb-btn out" style={{ fontSize: '12px' }}>
+              {hasConnection ? 'Reconnect Stripe' : 'Connect Stripe'}
+            </button>
+          </Link>
+        )}
+        {!isTeamMember && isPro && hasConnection && connectionScope === 'read_only' && (
           <a href="/api/stripe/connect?upgrade=1">
             <button className="tb-btn red" style={{ fontSize: '12px' }}>Grant write access</button>
           </a>
         )}
-        {isPro && (
+        {!isTeamMember && isPro && (
           <button
             className="tb-btn out"
             style={{ fontSize: '12px' }}
@@ -893,7 +895,7 @@ function SettingsCard({
 
       {/* Team Members — Pro owners only */}
       {isPro && !isTeamMember && (
-        <div style={{ padding: '20px 20px 24px', borderTop: '1px solid var(--bd)' }}>
+        <div style={{ padding: '20px 0 24px', borderTop: '1px solid var(--bd)' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--tx2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '14px' }}>
             Team Members <span style={{ fontWeight: 400, color: 'var(--tx3)', textTransform: 'none', letterSpacing: 0 }}>({invites.length}/3)</span>
           </div>
@@ -927,7 +929,7 @@ function SettingsCard({
 
       {/* Team member view */}
       {isTeamMember && teamOwnerEmail && (
-        <div style={{ padding: '16px 20px', borderTop: '1px solid var(--bd)', background: 'rgba(255,193,7,.05)', borderRadius: '0 0 12px 12px' }}>
+        <div style={{ padding: '16px 0', borderTop: '1px solid var(--bd)', background: 'rgba(255,193,7,.05)' }}>
           <div style={{ fontSize: '12px', color: '#f59e0b' }}>You are viewing <strong>{teamOwnerEmail}</strong>&apos;s account as a read-only team member.</div>
         </div>
       )}
@@ -1493,7 +1495,7 @@ export default function DashboardPage() {
                   <div key={p} className={`tb-p${period === p ? ' on' : ''}`} onClick={() => setPeriod(p)}>{p}</div>
                 ))}
               </div>
-              {hasConnection && (
+              {hasConnection && !isTeamMember && (
                 <button
                   className="tb-btn out"
                   onClick={handleSync}
