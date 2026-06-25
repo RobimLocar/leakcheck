@@ -60,7 +60,7 @@ const PRO_FEATURES = [
   'Smart retry logic by failure type',
   'Email + SMS recovery sequence',
   'Write your own message templates — or generate with AI',
-  'Real-time Slack + email alerts',
+  'Instant alerts — Email, Slack & Telegram',
   'Monthly CFO recovery report',
   'Team members — invite up to 3',
 ]
@@ -648,6 +648,86 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── ALERTS SECTION ── */}
+      <div className="pad" style={{ background: 'var(--s2)' }}>
+        <div className="inn">
+          <div className="label rv">Instant alerts</div>
+          <h2 className="h2 rv d1">Know in seconds.<br />Not when you check.</h2>
+          <p className="sub rv d2" style={{ marginTop: '14px' }}>The moment a payment fails, LeakCheck tells you — wherever you are.</p>
+
+          <div className="rv d1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginTop: '40px' }}>
+
+            {/* Email */}
+            <div style={{ background: 'var(--bg)', border: '1px solid var(--bd)', borderRadius: '14px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(99,102,241,.12)', border: '1px solid rgba(99,102,241,.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>✉️</div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--tx)' }}>Email</div>
+                  <div style={{ fontSize: '11px', color: 'var(--tx3)' }}>Zero setup — works out of the box</div>
+                </div>
+              </div>
+              <div style={{ background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: '10px', padding: '14px', fontFamily: 'monospace', fontSize: '12px' }}>
+                <div style={{ color: 'var(--tx3)', marginBottom: '8px', fontSize: '11px' }}>From: LeakCheck &lt;alerts@getleakcheck.com&gt;</div>
+                <div style={{ color: 'var(--red)', fontWeight: 700, marginBottom: '4px' }}>🔴 Payment failed — $149.00</div>
+                <div style={{ color: 'var(--tx2)' }}>Acme Corp · Insufficient Funds</div>
+                <div style={{ marginTop: '8px' }}><span style={{ background: 'var(--red)', color: '#fff', padding: '3px 8px', borderRadius: '4px', fontSize: '11px' }}>View Dashboard →</span></div>
+              </div>
+              <p style={{ fontSize: '12.5px', color: 'var(--tx3)', margin: 0, lineHeight: 1.6 }}>Toggle on in Alerts — no extra config. Goes directly to your account email.</p>
+            </div>
+
+            {/* Slack */}
+            <div style={{ background: 'var(--bg)', border: '1px solid var(--bd)', borderRadius: '14px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(74,197,118,.1)', border: '1px solid rgba(74,197,118,.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>💬</div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--tx)' }}>Slack</div>
+                  <div style={{ fontSize: '11px', color: 'var(--tx3)' }}>Notify your whole team at once</div>
+                </div>
+              </div>
+              <div style={{ background: '#1a1d21', border: '1px solid #2d3136', borderRadius: '10px', padding: '14px', fontSize: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0 }}>LC</div>
+                  <div>
+                    <div style={{ color: '#fff', fontWeight: 700, marginBottom: '2px' }}>LeakCheck Alerts <span style={{ color: '#5c6168', fontWeight: 400, fontSize: '11px' }}>Today at 3:41 PM</span></div>
+                    <div style={{ color: '#d1d2d3' }}>🔴 New failed payment: <strong>$149.00</strong> from Acme Corp — Insufficient Funds</div>
+                  </div>
+                </div>
+              </div>
+              <p style={{ fontSize: '12.5px', color: 'var(--tx3)', margin: 0, lineHeight: 1.6 }}>Paste a webhook URL and your team sees every failure in real time — in any channel.</p>
+            </div>
+
+            {/* Telegram */}
+            <div style={{ background: 'var(--bg)', border: '1px solid var(--bd)', borderRadius: '14px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: '12px', right: '12px', fontSize: '10px', fontWeight: 700, color: '#4ade80', background: 'rgba(34,197,94,.1)', border: '1px solid rgba(34,197,94,.25)', borderRadius: '4px', padding: '2px 6px' }}>MOBILE</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(38,168,221,.12)', border: '1px solid rgba(38,168,221,.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>✈️</div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--tx)' }}>Telegram</div>
+                  <div style={{ fontSize: '11px', color: 'var(--tx3)' }}>Push notification on your phone</div>
+                </div>
+              </div>
+              <div style={{ background: '#17212b', border: '1px solid #2b3e50', borderRadius: '10px', padding: '14px', fontSize: '12px' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, color: '#fff', flexShrink: 0 }}>LC</div>
+                  <div style={{ background: '#2b5278', borderRadius: '0 8px 8px 8px', padding: '8px 12px', maxWidth: '200px' }}>
+                    <div style={{ color: '#fff', marginBottom: '2px' }}>🔴 <strong>Failed payment</strong></div>
+                    <div style={{ color: '#b8c9db' }}>$149.00 from Acme Corp</div>
+                    <div style={{ color: '#8899a6', fontSize: '10px' }}>Reason: Insufficient Funds</div>
+                  </div>
+                </div>
+              </div>
+              <p style={{ fontSize: '12.5px', color: 'var(--tx3)', margin: 0, lineHeight: 1.6 }}>Get a push notification on your phone the instant a payment fails. No app beyond Telegram needed.</p>
+            </div>
+
+          </div>
+
+          <div className="rv d2" style={{ marginTop: '28px', textAlign: 'center' }}>
+            <p style={{ fontSize: '13px', color: 'var(--tx3)', margin: '0 0 16px' }}>All three channels work independently — enable the ones that fit your workflow.</p>
+            <Link href="/onboarding" className="btn btn-p">Start free — get alerts today</Link>
           </div>
         </div>
       </div>
