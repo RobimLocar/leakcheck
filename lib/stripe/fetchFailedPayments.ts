@@ -86,7 +86,7 @@ async function listInvoices(
 export async function fetchFailedPayments(
   accessToken: string
 ): Promise<FailedPayment[]> {
-  const since = Math.floor((Date.now() - 90 * 24 * 60 * 60 * 1000) / 1000)
+  const since = Math.floor((Date.now() - 365 * 24 * 60 * 60 * 1000) / 1000)
 
   const [openInvoices, uncollectibleInvoices] = await Promise.all([
     listInvoices(accessToken, 'open', since),
