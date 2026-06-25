@@ -237,3 +237,105 @@ export async function sendRecoverySequenceEmail(
   })
   if (error) console.error(`[resend] sequence email (step ${step}) failed:`, error.message)
 }
+
+export type CfoReportProps = {
+  userEmail: string
+  month: string
+  atRiskAmount: number
+  recoveredAmount: number
+  recoveryRate: number
+  currency: string
+  topAccounts: Array<{ name: string | null; email: string | null; amount: number; failureCount: number }>
+}
+
+export async function sendCfoReport(props: CfoReportProps): Promise<void> {
+  function fmt(cents: number) {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: props.currency.toUpperCase() }).format(cents / 100)
+  }
+
+  const rateColor = props.recoveryRate >= 60 ? '#22c55e' : props.recoveryRate >= 30 ? '#f59e0b' : '#ff3d3d'
+
+  const topRows = props.topAccounts.map(a => {
+    const label = escapeHtml(a.name ?? a.email ?? 'Unknown')
+    const sub = a.name && a.email ? `<br><span style="color:#666;font-size:11px;">${escapeHtml(a.email)}</span>` : ''
+    return `
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #1a1a1a;color:#ccc;font-size:13px;">${label}${sub}</td>
+        <td style="padding:10px 0;border-bottom:1px solid #1a1a1a;color:#ff3d3d;font-size:13px;text-align:right;font-weight:700;">${fmt(a.amount)}</td>
+        <td style="padding:10px 0;border-bottom:1px solid #1a1a1a;color:#666;font-size:12px;text-align:right;">${a.failureCount}×</td>
+      </tr>`
+  }).join('')
+
+  const html = `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;font-family:${FONT};">
+  <tr><td align="center">
+    <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;padding:48px 32px;">
+      <tr><td>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+          <tr>
+            <td style="padding-right:8px;"><div style="width:8px;height:8px;border-radius:50%;background:#ff3d3d;"></div></td>
+            <td><span style="color:#fff;font-size:15px;font-weight:700;letter-spacing:-0.01em;">LeakCheck</span></td>
+          </tr>
+        </table>
+        <h1 style="color:#fff;font-size:22px;font-weight:800;margin:0 0 6px;letter-spacing:-0.02em;">Monthly Recovery Report</h1>
+        <p style="color:#555;font-size:13px;margin:0 0 36px;">${escapeHtml(props.month)}</p>
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+          <tr>
+            <td width="33%" style="padding:0 8px 0 0;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:20px;">
+                <tr><td>
+                  <p style="color:#666;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin:0 0 8px;">At Risk</p>
+                  <p style="color:#ff3d3d;font-size:20px;font-weight:800;margin:0;">${fmt(props.atRiskAmount)}</p>
+                </td></tr>
+              </table>
+            </td>
+            <td width="33%" style="padding:0 4px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:20px;">
+                <tr><td>
+                  <p style="color:#666;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin:0 0 8px;">Recovered</p>
+                  <p style="color:#22c55e;font-size:20px;font-weight:800;margin:0;">${fmt(props.recoveredAmount)}</p>
+                </td></tr>
+              </table>
+            </td>
+            <td width="33%" style="padding:0 0 0 8px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:20px;">
+                <tr><td>
+                  <p style="color:#666;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin:0 0 8px;">Recovery Rate</p>
+                  <p style="color:${rateColor};font-size:20px;font-weight:800;margin:0;">${props.recoveryRate}%</p>
+                </td></tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+
+        ${topRows ? `
+        <p style="color:#555;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin:0 0 12px;">Top At-Risk Accounts</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+          ${topRows}
+        </table>` : ''}
+
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:40px;">
+          <tr><td style="background:#ff3d3d;border-radius:10px;">
+            <a href="${SITE_URL}/dashboard" style="display:inline-block;color:#fff;padding:12px 24px;text-decoration:none;font-weight:700;font-size:14px;">View Dashboard →</a>
+          </td></tr>
+        </table>
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #1a1a1a;">
+          <tr><td style="padding-top:20px;">
+            <p style="color:#333;font-size:11px;line-height:1.6;margin:0;">You're receiving this monthly report because you're on the LeakCheck Pro plan. Sent to ${escapeHtml(props.userEmail)}.</p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>`
+
+  const { error } = await resend.emails.send({
+    from: DEFAULT_FROM,
+    to: props.userEmail,
+    subject: `Recovery Report — ${props.month} · ${props.recoveryRate}% recovered`,
+    html,
+  })
+  if (error) console.error('[resend] cfo report failed:', error.message)
+}
