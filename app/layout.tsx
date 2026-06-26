@@ -17,12 +17,23 @@ export const metadata: Metadata = {
   title: "LeakCheck — Recover Failed Stripe Payments Automatically",
   description:
     "LeakCheck connects to your Stripe in 60 seconds and shows you exactly how much revenue you lose to failed payments — then recovers it automatically with smart retries and email sequences.",
+  icons: {
+    icon: [
+      { url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon-192.png',   sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png',   sizes: '512x512', type: 'image/png' },
+    ],
+    apple: { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+    shortcut: '/favicon.ico',
+  },
   openGraph: {
     title: "LeakCheck — Recover Failed Stripe Payments Automatically",
     description:
       "Stop losing revenue to failed payments. LeakCheck detects the leak, notifies you instantly, and recovers the money — automatically.",
     url: "https://getleakcheck.com",
     siteName: "LeakCheck",
+    images: [{ url: '/icon-512.png', width: 512, height: 512 }],
     type: "website",
   },
   twitter: {
@@ -30,6 +41,7 @@ export const metadata: Metadata = {
     title: "LeakCheck — Recover Failed Stripe Payments Automatically",
     description:
       "Stop losing revenue to failed payments. LeakCheck detects the leak, notifies you instantly, and recovers the money — automatically.",
+    images: ['/icon-512.png'],
   },
 };
 
