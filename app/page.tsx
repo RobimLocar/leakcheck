@@ -368,6 +368,7 @@ export default function LandingPage() {
         <div className="logo"><div className="pip" />LeakCheck</div>
         <ul className="nav-links">
           <li><a href="#how-it-works" onClick={e => { e.preventDefault(); scrollTo('how-it-works') }}>How it works</a></li>
+          <li><a href="#alerts" onClick={e => { e.preventDefault(); scrollTo('alerts') }}>Alerts</a></li>
           <li><a href="#pricing" onClick={e => { e.preventDefault(); scrollTo('pricing') }}>Pricing</a></li>
         </ul>
         <Link href="/onboarding" className="btn btn-w" style={{ fontSize: '14px', padding: '10px 20px' }}>
@@ -380,6 +381,7 @@ export default function LandingPage() {
 
       <div className={`drawer${menuOpen ? ' open' : ''}`}>
         <a href="#how-it-works" onClick={e => { e.preventDefault(); closeMenu(); scrollTo('how-it-works') }}>How it works</a>
+        <a href="#alerts" onClick={e => { e.preventDefault(); closeMenu(); scrollTo('alerts') }}>Alerts</a>
         <a href="#pricing" onClick={e => { e.preventDefault(); closeMenu(); scrollTo('pricing') }}>Pricing</a>
         <Link href="/onboarding" className="btn btn-r" onClick={closeMenu}>Connect Stripe — Free →</Link>
       </div>
@@ -659,7 +661,7 @@ export default function LandingPage() {
       </div>
 
       {/* ── ALERTS SECTION ── */}
-      <div className="pad" style={{ background: 'var(--s2)' }}>
+      <div id="alerts" className="pad" style={{ background: 'var(--s2)' }}>
         <div className="inn">
           <div className="label rv">Instant alerts</div>
           <h2 className="h2 rv d1">Know in seconds.<br />Not when you check.</h2>
@@ -733,7 +735,7 @@ export default function LandingPage() {
 
           <div className="rv d2" style={{ marginTop: '28px', textAlign: 'center' }}>
             <p style={{ fontSize: '13px', color: 'var(--tx3)', margin: '0 0 16px' }}>All three channels work independently — enable the ones that fit your workflow.</p>
-            <Link href="/onboarding" className="btn btn-p">Start free — get alerts today</Link>
+            <Link href="/onboarding" className="btn btn-r">Start free — get alerts today</Link>
           </div>
         </div>
       </div>

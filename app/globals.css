@@ -905,4 +905,8 @@ canvas#chart { width: 100%; height: 140px; display: block; }
 @media (max-width: 640px) {
   .timeline-grid { grid-template-columns: 1fr !important; }
   .timeline-line { display: none !important; }
+  /* ROI calculator inner grid stacks on small screens */
+  .bc.span2 .bc-inner { grid-template-columns: 1fr !important; }
+  /* Alert cards CTA button full-width */
+  #alerts .btn { width: 100%; justify-content: center; }
 }
