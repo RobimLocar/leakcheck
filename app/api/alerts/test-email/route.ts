@@ -20,7 +20,7 @@ export async function POST() {
     return NextResponse.json({ error: 'Email alerts are not enabled' }, { status: 400 })
   }
 
-  await sendOwnerPaymentAlert({
+  const ok = await sendOwnerPaymentAlert({
     to: user.email,
     event: 'failed',
     customerName: 'Test Customer',
@@ -29,5 +29,6 @@ export async function POST() {
     failureReason: 'Insufficient Funds',
   })
 
+  if (!ok) return NextResponse.json({ error: 'Failed to send email — check server logs' }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

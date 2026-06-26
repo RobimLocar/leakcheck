@@ -1272,6 +1272,7 @@ export default function DashboardPage() {
         if (res.ok) {
           const td = await res.json()
           if (td.ownerEmail) setTeamOwnerEmail(td.ownerEmail)
+          if (td.ownerIsPro) setIsPro(true)
           setHasConnection(!!td.connection)
           if (td.connection) {
             setStripeAccountId(td.connection.stripe_account_id)
@@ -1383,11 +1384,15 @@ export default function DashboardPage() {
   }, [allPayments, periodDays])
 
   const totalLostCents = useMemo(
-    () => periodPayments.filter(p => p.status === 'open').reduce((s, p) => s + p.amount, 0),
+    () => periodPayments.filter(p => p.status === 'open' || p.status === 'lost').reduce((s, p) => s + p.amount, 0),
     [periodPayments]
   )
   const totalLost = Math.round(totalLostCents / 100)
-  const recoverable = totalLost
+  const recoverableCents = useMemo(
+    () => periodPayments.filter(p => p.status === 'open' && !p.retry_exhausted).reduce((s, p) => s + p.amount, 0),
+    [periodPayments]
+  )
+  const recoverable = Math.round(recoverableCents / 100)
   const failCount = periodPayments.length
 
   const filteredPayments = useMemo(

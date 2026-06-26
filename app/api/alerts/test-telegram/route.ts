@@ -18,10 +18,11 @@ export async function POST() {
     return NextResponse.json({ error: 'No Telegram Chat ID saved yet' }, { status: 400 })
   }
 
-  await sendTelegramAlert(
+  const ok = await sendTelegramAlert(
     profile.telegram_chat_id,
     '👋 <b>LeakCheck test</b> — your Telegram alerts are working correctly!',
   )
 
+  if (!ok) return NextResponse.json({ error: 'Failed to send Telegram message — check bot token and chat ID' }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

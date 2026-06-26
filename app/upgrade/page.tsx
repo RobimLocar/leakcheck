@@ -131,7 +131,7 @@ export default function UpgradePage() {
           <div className="pip" />
           LeakCheck
         </div>
-        <button className="back" onClick={() => router.back()}>
+        <button className="back" onClick={() => router.push('/dashboard')}>
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path d="M19 12H5M12 5l-7 7 7 7" />
           </svg>

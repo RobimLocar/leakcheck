@@ -55,7 +55,7 @@ export async function sendOwnerPaymentAlert(opts: {
   amount: number
   currency: string
   failureReason?: string
-}): Promise<void> {
+}): Promise<boolean> {
   const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: opts.currency.toUpperCase() }).format(opts.amount / 100)
   const isFailed = opts.event === 'failed'
   const accent = isFailed ? '#ff3d3d' : '#22c55e'
@@ -97,7 +97,11 @@ export async function sendOwnerPaymentAlert(opts: {
   </td></tr>
 </table>`,
   })
-  if (error) console.error('[resend] owner payment alert failed:', error.message)
+  if (error) {
+    console.error('[resend] owner payment alert failed:', error.message)
+    return false
+  }
+  return true
 }
 
 export async function sendOperatorAlert(subject: string, message: string): Promise<void> {

@@ -1,8 +1,8 @@
 const token = () => process.env.TELEGRAM_BOT_TOKEN
 const BASE = () => `https://api.telegram.org/bot${token()}`
 
-export async function sendTelegramAlert(chatId: string | null | undefined, text: string): Promise<void> {
-  if (!chatId || !token()) return
+export async function sendTelegramAlert(chatId: string | null | undefined, text: string): Promise<boolean> {
+  if (!chatId || !token()) return false
   try {
     const res = await fetch(`${BASE()}/sendMessage`, {
       method: 'POST',
@@ -11,9 +11,12 @@ export async function sendTelegramAlert(chatId: string | null | undefined, text:
     })
     if (!res.ok) {
       console.error('[telegram] send failed:', res.status, await res.text().catch(() => ''))
+      return false
     }
+    return true
   } catch (err) {
     console.error('[telegram] send failed:', err)
+    return false
   }
 }
 

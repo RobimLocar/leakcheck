@@ -24,13 +24,14 @@ export async function GET() {
   const ownerId = profile.team_owner_id
 
   const [{ data: ownerProfile }, { data: connection }, { data: payments }] = await Promise.all([
-    admin.from('profiles').select('email').eq('id', ownerId).maybeSingle(),
+    admin.from('profiles').select('email, is_pro').eq('id', ownerId).maybeSingle(),
     admin.from('stripe_connections').select('stripe_account_id, scope').eq('user_id', ownerId).maybeSingle(),
     admin.from('failed_payments').select('*').eq('user_id', ownerId).order('created_at', { ascending: false }),
   ])
 
   return NextResponse.json({
     ownerEmail: ownerProfile?.email ?? null,
+    ownerIsPro: ownerProfile?.is_pro ?? false,
     connection: connection ?? null,
     payments: payments ?? [],
   })

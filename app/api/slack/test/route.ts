@@ -20,7 +20,8 @@ export async function POST() {
     return NextResponse.json({ error: 'No Slack webhook URL saved yet' }, { status: 400 })
   }
 
-  await sendSlackAlert(profile.slack_webhook_url, '👋 This is a test alert from LeakCheck — your Slack alerts are working.')
+  const ok = await sendSlackAlert(profile.slack_webhook_url, '👋 This is a test alert from LeakCheck — your Slack alerts are working.')
 
+  if (!ok) return NextResponse.json({ error: 'Failed to send Slack message — check your webhook URL' }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
