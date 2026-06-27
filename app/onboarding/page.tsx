@@ -302,15 +302,15 @@ function OnboardingContent() {
         {step === 3 && (
           <div className="step-panel">
             <div className="reveal-card">
-              <div className="rv-header">
+              <div className={`rv-header${!polling && realAmount === null ? ' rv-header--clean' : ''}`}>
                 <div className="rv-label">
                   {polling
                     ? 'Scanning your Stripe account…'
                     : realAmount !== null
                       ? 'You lost this month to failed payments'
-                      : 'No open failed payments found'}
+                      : 'Your payments are clean ✓'}
                 </div>
-                <div className="rv-amount" style={polling ? { opacity: 0.3 } : {}}>
+                <div className={`rv-amount${!polling && realAmount === null ? ' rv-amount--clean' : ''}`} style={polling ? { opacity: 0.3 } : {}}>
                   {polling ? '——' : realAmount !== null ? `$${realAmount.toLocaleString('en-US')}` : '$0'}
                 </div>
                 <div className="rv-sub">
@@ -318,7 +318,7 @@ function OnboardingContent() {
                     ? 'This may take a few seconds for large accounts…'
                     : realAmount !== null
                       ? `across ${realCount} failed payment${realCount !== 1 ? 's' : ''} in the last 30 days`
-                      : 'Your payments look healthy right now'}
+                      : 'No failed payments in the last 30 days — for now.'}
                 </div>
               </div>
               <div className="rv-body">
@@ -327,8 +327,8 @@ function OnboardingContent() {
                     <strong>The good news:</strong> ${realAmount.toLocaleString('en-US')} of this is still recoverable within the 30-day window — if you act now.
                   </div>
                 )}
-                {(polling || realAmount === null) && (
-                  <div className="rv-breakdown" style={polling ? { opacity: 0.25, pointerEvents: 'none' } : {}}>
+                {polling && (
+                  <div className="rv-breakdown" style={{ opacity: 0.25, pointerEvents: 'none' }}>
                     {BREAKDOWN.map((row) => (
                       <div key={row.label} className="rv-row">
                         <div className="rv-reason">
@@ -343,9 +343,27 @@ function OnboardingContent() {
                     ))}
                   </div>
                 )}
+                {!polling && realAmount === null && (
+                  <div className="rv-clean-points">
+                    <div className="rv-clean-point">
+                      <span className="rv-clean-icon">🔔</span>
+                      <span><strong>Get alerted the second a payment fails</strong> — before the 30-day recovery window closes.</span>
+                    </div>
+                    <div className="rv-clean-point">
+                      <span className="rv-clean-icon">📧</span>
+                      <span><strong>Automated recovery emails</strong> sent instantly to your customers — no manual work.</span>
+                    </div>
+                    <div className="rv-clean-point">
+                      <span className="rv-clean-icon">📊</span>
+                      <span><strong>Monthly revenue reports</strong> so $0 months stay $0 months.</span>
+                    </div>
+                  </div>
+                )}
                 <div className="rv-cta-wrap">
                   <Link href="/upgrade" className="rv-btn main">
-                    ⚡ {realAmount !== null ? `Recover $${realAmount.toLocaleString('en-US')} now — $29/mo` : 'Activate Recovery — $29/mo'}
+                    {realAmount !== null
+                      ? `⚡ Recover $${realAmount.toLocaleString('en-US')} now — $29/mo`
+                      : '🛡️ Stay protected — $29/mo'}
                   </Link>
                   <Link href="/dashboard" className="rv-btn ghost">
                     View Dashboard first
