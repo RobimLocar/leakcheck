@@ -119,12 +119,42 @@ export async function sendOperatorAlert(subject: string, message: string): Promi
 // Sent by LeakCheck to the founder who just signed up — the recipient is a
 // LeakCheck user, so full brand identity (dark theme, logo dot) is correct
 // here, unlike the customer-facing recovery emails below.
-export async function sendActivationReminder(email: string): Promise<void> {
-  const { error } = await resend.emails.send({
-    from: DEFAULT_FROM,
-    to: email,
+const ACTIVATION_STEPS: Record<number, { subject: string; headline: string; body: string; cta: string }> = {
+  1: {
     subject: 'Your Stripe data is waiting — 60 seconds to connect',
-    html: `
+    headline: 'You still haven\'t seen your number.',
+    body: 'Most founders who connect Stripe find anywhere from <strong style="color:#fff;">$200 to $2,000+</strong> in failed payments they didn\'t know about.<br><br>Takes 60 seconds. Read-only by default — we never move money without your explicit permission.',
+    cta: 'See how much you\'re losing →',
+  },
+  2: {
+    subject: 'Still haven\'t connected Stripe? Here\'s what you\'re missing',
+    headline: '72 hours in — your leaking revenue is waiting.',
+    body: 'Every day without LeakCheck is another day failed payments age out of the recovery window.<br><br>The connection takes 60 seconds and shows your exact number immediately — no setup, no credit card.',
+    cta: 'Connect Stripe now →',
+  },
+  3: {
+    subject: 'One week. How much did you lose to failed payments?',
+    headline: 'A week in — what\'s stopping you?',
+    body: 'If it\'s the Stripe connection that feels risky: we request read-only access by default. We literally cannot charge anything on your behalf unless you separately enable it in settings.<br><br>If it\'s time: it\'s 60 seconds. We\'ve timed it.',
+    cta: 'Connect in 60 seconds →',
+  },
+  4: {
+    subject: 'One month since you signed up for LeakCheck',
+    headline: 'A month later — still losing money silently.',
+    body: 'You signed up a month ago. Since then, the average LeakCheck user in your MRR range has recovered <strong style="color:#fff;">$340</strong> in failed payments they didn\'t know about.<br><br>Still free to connect and view. No catch.',
+    cta: 'See your real number →',
+  },
+}
+
+const ACTIVATION_MONTHLY = {
+  subject: 'LeakCheck: your failed payments are piling up',
+  headline: 'Still here if you need us.',
+  body: 'Just a heads-up: failed payments that go unrecovered for more than 30 days are almost impossible to collect. Every month that passes, a portion of that revenue is gone for good.<br><br>The connection is still free and takes 60 seconds.',
+  cta: 'Connect Stripe →',
+}
+
+function activationReminderHtml(copy: { headline: string; body: string; cta: string }): string {
+  return `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;font-family:${FONT};">
   <tr><td align="center">
     <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;padding:48px 32px;">
@@ -135,12 +165,11 @@ export async function sendActivationReminder(email: string): Promise<void> {
             <td><span style="color:#fff;font-size:15px;font-weight:700;letter-spacing:-0.01em;">LeakCheck</span></td>
           </tr>
         </table>
-        <h1 style="color:#fff;font-size:22px;font-weight:800;margin:0 0 16px;letter-spacing:-0.02em;line-height:1.25;">You still haven't seen your number.</h1>
-        <p style="color:#999;font-size:14px;line-height:1.6;margin:0 0 12px;">Most founders who connect Stripe find anywhere from <strong style="color:#fff;">$200 to $2,000+</strong> in failed payments they didn't know about.</p>
-        <p style="color:#999;font-size:14px;line-height:1.6;margin:0 0 28px;">Takes 60 seconds. Read-only by default — we never move money without your explicit permission.</p>
+        <h1 style="color:#fff;font-size:22px;font-weight:800;margin:0 0 16px;letter-spacing:-0.02em;line-height:1.25;">${copy.headline}</h1>
+        <p style="color:#999;font-size:14px;line-height:1.6;margin:0 0 28px;">${copy.body}</p>
         <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
           <tr><td style="background:#ff3d3d;border-radius:10px;">
-            <a href="${SITE_URL}/onboarding" style="display:inline-block;color:#fff;padding:14px 28px;text-decoration:none;font-weight:700;font-size:14px;">See how much you're losing →</a>
+            <a href="${SITE_URL}/onboarding" style="display:inline-block;color:#fff;padding:14px 28px;text-decoration:none;font-weight:700;font-size:14px;">${copy.cta}</a>
           </td></tr>
         </table>
         <p style="color:#555;font-size:12px;line-height:1.6;margin:0 0 4px;">No credit card required · Free to connect and view.</p>
@@ -152,9 +181,18 @@ export async function sendActivationReminder(email: string): Promise<void> {
       </td></tr>
     </table>
   </td></tr>
-</table>`,
+</table>`
+}
+
+export async function sendActivationReminder(email: string, step: number): Promise<void> {
+  const copy = ACTIVATION_STEPS[step] ?? ACTIVATION_MONTHLY
+  const { error } = await resend.emails.send({
+    from: DEFAULT_FROM,
+    to: email,
+    subject: copy.subject,
+    html: activationReminderHtml(copy),
   })
-  if (error) console.error('[resend] activation reminder failed:', error.message)
+  if (error) console.error(`[resend] activation reminder step ${step} failed:`, error.message)
 }
 
 export async function sendWelcomeEmail(email: string): Promise<void> {
