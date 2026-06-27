@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+import Link from 'next/link'
 import { fireFbq } from '@/lib/fbq'
 
 function LoginForm() {
@@ -86,6 +87,12 @@ function LoginForm() {
                 {loading ? 'Sending magic link...' : 'Send magic link →'}
               </button>
               <p className="cc-note">No password required · Free to start</p>
+              <p className="login-legal">
+                By signing in you agree to our{' '}
+                <Link href="/terms">Terms of Service</Link>{' '}
+                and{' '}
+                <Link href="/privacy">Privacy Policy</Link>.
+              </p>
             </form>
           ) : (
             <div className="login-success">
