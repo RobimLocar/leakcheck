@@ -4,6 +4,7 @@ import { Fragment, useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { fireFbq } from '@/lib/fbq'
 
 type ScanStatus = 'pending' | 'active' | 'done'
 
@@ -45,14 +46,7 @@ function OnboardingContent() {
   useEffect(() => {
     if (searchParams.get('connected') === 'true') {
       setStep(2)
-      // Meta Pixel: CompleteRegistration = Stripe connected (free tier)
-      if (typeof window !== 'undefined' && (window as any).fbq) {
-        ;(window as any).fbq('track', 'CompleteRegistration', {
-          content_name: 'Stripe Connection',
-          currency: 'USD',
-          value: 0,
-        })
-      }
+      fireFbq('CompleteRegistration', { content_name: 'Stripe Connection', currency: 'USD', value: 0 })
       // Dispara o sync real em background
       fetch('/api/stripe/sync', { method: 'POST' })
         .catch(err => console.error('[onboarding] sync failed:', err))

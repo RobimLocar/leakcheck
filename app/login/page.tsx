@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+import { fireFbq } from '@/lib/fbq'
 
 function LoginForm() {
   const searchParams = useSearchParams()
@@ -34,9 +35,7 @@ function LoginForm() {
       setError(authError.message)
     } else {
       setSent(true)
-      if (typeof window !== 'undefined' && (window as any).fbq) {
-        ;(window as any).fbq('track', 'Lead', { content_name: 'Magic Link Signup' })
-      }
+      fireFbq('Lead', { content_name: 'Magic Link Signup' })
     }
   }
 

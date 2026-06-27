@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { isRetryable, nextRetryEta, MAX_RETRIES } from '@/lib/recovery/retryPolicy'
 import { emailSequenceLabel } from '@/lib/recovery/emailSequence'
 import { DEFAULT_SMS_TEMPLATES, DEFAULT_EMAIL_TEMPLATES, type MessageTemplates } from '@/lib/recovery/messageTemplates'
+import { fireFbq } from '@/lib/fbq'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1378,14 +1379,7 @@ export default function DashboardPage() {
     const plan = params.get('plan')
     const value = plan === 'lifetime' ? 149 : 29
     const contentName = plan === 'lifetime' ? 'LeakCheck Lifetime' : 'LeakCheck Recovery Monthly'
-    if ((window as any).fbq) {
-      ;(window as any).fbq('track', 'Purchase', {
-        value,
-        currency: 'USD',
-        content_name: contentName,
-        content_type: 'product',
-      })
-    }
+    fireFbq('Purchase', { value, currency: 'USD', content_name: contentName, content_type: 'product' })
     // Remove params from URL so a page refresh doesn't double-fire the event
     const clean = new URL(window.location.href)
     clean.searchParams.delete('upgraded')
