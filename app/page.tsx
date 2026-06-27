@@ -966,15 +966,16 @@ export default function LandingPage() {
       <div className="founder-section">
         <p className="founder-quote">
           &ldquo;I built this because I kept watching clients lose money to failed payments every month
-          — silently, without any alert. Every tool I found was either too complex or built for
-          engineers, not founders. LeakCheck is what I wish had existed from day one.&rdquo;
+          — silently, without any alert. Every tool I found was either too complex or built only
+          for technical teams. LeakCheck is what I wish had existed from day one: simple enough
+          for any business owner, powerful enough to actually recover the money.&rdquo;
         </p>
         <div className="founder-byline">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/robison.jpg" alt="Robison Oliveira" className="founder-av" />
           <div className="founder-meta">
             <div className="founder-name">Robison Oliveira</div>
-            <div className="founder-role">Civil Engineer · Marketer · Indie Founder</div>
+            <div className="founder-role">Entrepreneur · Marketer · Indie Founder</div>
             <a
               href="https://www.linkedin.com/in/robison-oliveira-a98290369/"
               target="_blank"
