@@ -962,6 +962,30 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* ── FOUNDER ── */}
+      <div className="founder-section">
+        <p className="founder-quote">
+          &ldquo;I built this because I kept watching clients lose money to failed payments every month
+          — silently, without any alert. Every tool I found was either too complex or built for
+          engineers, not founders. LeakCheck is what I wish had existed from day one.&rdquo;
+        </p>
+        <div className="founder-byline">
+          <div className="founder-av">R</div>
+          <div className="founder-meta">
+            <div className="founder-name">Robison Oliveira</div>
+            <div className="founder-role">Civil Engineer · Marketer · Indie Founder</div>
+            <a
+              href="https://www.linkedin.com/in/robison-oliveira-a98290369/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="founder-li"
+            >
+              LinkedIn ↗
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* ── FOOTER ── */}
       <footer>
         <div className="fl"><div className="pip" />LeakCheck</div>
@@ -969,7 +993,7 @@ export default function LandingPage() {
           <li><Link href="/privacy">Privacy</Link></li>
           <li><Link href="/terms">Terms</Link></li>
         </ul>
-        <div className="fn">© {new Date().getFullYear()} LeakCheck · Built for SaaS teams</div>
+        <div className="fn">© {new Date().getFullYear()} LeakCheck · Built by Robison Oliveira</div>
       </footer>
     </>
   )
