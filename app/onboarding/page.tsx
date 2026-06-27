@@ -223,6 +223,24 @@ function OnboardingContent() {
                     </div>
                   </div>
                 </div>
+                <div style={{
+                  background: 'rgba(245,158,11,.06)',
+                  border: '1px solid rgba(245,158,11,.25)',
+                  borderRadius: '10px',
+                  padding: '14px 16px',
+                  marginBottom: '16px',
+                  fontSize: '12.5px',
+                  lineHeight: '1.65',
+                  color: 'var(--tx2)',
+                }}>
+                  <div style={{ fontWeight: 700, color: '#f59e0b', marginBottom: '6px', fontSize: '12px' }}>
+                    ⚠️ Heads up about Stripe's permissions screen
+                  </div>
+                  Stripe will show <strong style={{ color: 'var(--tx)' }}>"read &amp; write access"</strong> on the next screen.<br />
+                  In practice, we only read your data. We never retry a charge or touch your money.<br /><br />
+                  You can revoke access anytime from your{' '}
+                  <strong style={{ color: 'var(--tx)' }}>Stripe Dashboard → Connected Apps</strong>.
+                </div>
                 {connectError && (
                   <p className="login-error" style={{ marginBottom: '12px' }}>
                     {ERROR_MESSAGES[connectError] ?? 'Something went wrong. Try again.'}
