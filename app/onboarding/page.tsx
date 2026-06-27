@@ -26,12 +26,15 @@ const BREAKDOWN = [
   { label: 'Insufficient funds', color: '#ff9898',    count: '2 payments', amount: '−$52'  },
 ]
 
+const SUPPORT_EMAIL = 'support@getleakcheck.com'
+
 const ERROR_MESSAGES: Record<string, string> = {
-  stripe_denied:     'Stripe connection was cancelled. Try again.',
-  token_exchange:    'Could not connect to Stripe. Try again.',
-  db:                'Something went wrong saving your connection. Try again.',
-  misconfigured:     'Stripe Connect is not configured. Contact support.',
-  already_connected: 'This Stripe account is already linked to another LeakCheck account. Disconnect it there first, or use a different Stripe account.',
+  stripe_denied:     'Stripe connection was cancelled. Try again — or email us at support@getleakcheck.com if it keeps happening.',
+  token_exchange:    'Could not connect to Stripe. Try again, or email support@getleakcheck.com and we\'ll sort it out.',
+  db:                'Something went wrong saving your connection. Try again or contact support@getleakcheck.com.',
+  misconfigured:     'Stripe Connect is not configured correctly. Email support@getleakcheck.com and we\'ll fix it immediately.',
+  already_connected: 'This Stripe account is already linked to another LeakCheck account. Disconnect it there first, or use a different Stripe account. Need help? support@getleakcheck.com',
+  session_expired:   'Your session expired — log in again and we\'ll pick up where you left off.',
 }
 
 function OnboardingContent() {
@@ -41,6 +44,7 @@ function OnboardingContent() {
   const [scanFill, setScanFill] = useState(0)
   const [realAmount, setRealAmount] = useState<number | null>(null)
   const [realCount, setRealCount] = useState<number | null>(null)
+  const [polling, setPolling] = useState(false)
 
   // Auto-advance to scanning step after successful OAuth callback
   useEffect(() => {
@@ -96,9 +100,7 @@ function OnboardingContent() {
     timers.push(setTimeout(() => setScanFill(100), 5000))
     timers.push(setTimeout(() => {
       setStep(3)
-      // Poll the DB every 1.5s until data arrives — the background sync may
-      // still be writing when the animation completes, so a single read at
-      // this exact moment often returns 0 even when invoices exist.
+      setPolling(true)
       const supabase = createClient()
       let attempts = 0
       const poll = async () => {
@@ -111,10 +113,15 @@ function OnboardingContent() {
         if (data && data.length > 0) {
           setRealAmount(Math.round(data.reduce((s, p) => s + p.amount, 0) / 100))
           setRealCount(data.length)
+          setPolling(false)
           return
         }
         attempts++
-        if (attempts < 10) timers.push(setTimeout(poll, 1500))
+        if (attempts < 10) {
+          timers.push(setTimeout(poll, 1500))
+        } else {
+          setPolling(false)
+        }
       }
       poll()
     }, 5400))
@@ -296,18 +303,32 @@ function OnboardingContent() {
           <div className="step-panel">
             <div className="reveal-card">
               <div className="rv-header">
-                <div className="rv-label">You lost this month to failed payments</div>
-                <div className="rv-amount">{realAmount !== null ? `$${realAmount.toLocaleString('en-US')}` : '$0'}</div>
+                <div className="rv-label">
+                  {polling
+                    ? 'Scanning your Stripe account…'
+                    : realAmount !== null
+                      ? 'You lost this month to failed payments'
+                      : 'No open failed payments found'}
+                </div>
+                <div className="rv-amount" style={polling ? { opacity: 0.3 } : {}}>
+                  {polling ? '——' : realAmount !== null ? `$${realAmount.toLocaleString('en-US')}` : '$0'}
+                </div>
                 <div className="rv-sub">
-                  across {realCount !== null ? `${realCount} failed payment${realCount !== 1 ? 's' : ''}` : '0 failed payments'} in the last 30 days
+                  {polling
+                    ? 'This may take a few seconds for large accounts…'
+                    : realAmount !== null
+                      ? `across ${realCount} failed payment${realCount !== 1 ? 's' : ''} in the last 30 days`
+                      : 'Your payments look healthy right now'}
                 </div>
               </div>
               <div className="rv-body">
-                <div className="rv-insight">
-                  <strong>The good news:</strong> {realAmount !== null ? `$${realAmount.toLocaleString('en-US')}` : '$0'} of this is still recoverable within the 30-day window — if you act now.
-                </div>
-                {realAmount === null && (
-                  <div className="rv-breakdown">
+                {!polling && realAmount !== null && (
+                  <div className="rv-insight">
+                    <strong>The good news:</strong> ${realAmount.toLocaleString('en-US')} of this is still recoverable within the 30-day window — if you act now.
+                  </div>
+                )}
+                {(polling || realAmount === null) && (
+                  <div className="rv-breakdown" style={polling ? { opacity: 0.25, pointerEvents: 'none' } : {}}>
                     {BREAKDOWN.map((row) => (
                       <div key={row.label} className="rv-row">
                         <div className="rv-reason">

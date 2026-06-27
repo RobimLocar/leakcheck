@@ -22,10 +22,11 @@ function LoginForm() {
     setError('')
 
     const supabase = createClient()
+    const next = searchParams.get('next') ?? '/dashboard'
     const { error: authError } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
         shouldCreateUser: true,
       },
     })

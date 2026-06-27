@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user || user.id !== state) {
-    return NextResponse.redirect(`${origin}/login`)
+    return NextResponse.redirect(`${origin}/login?error=session_expired&next=/onboarding`)
   }
 
   // Exchange authorization code for an access token
