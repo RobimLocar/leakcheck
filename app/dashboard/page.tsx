@@ -545,21 +545,41 @@ const AccountRiskView = ({ allPayments, isPro, canRetry }: { allPayments: DbPaym
   )
 }
 
-const ProUpgradeCard = ({ feature }: { feature: string }) => (
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '420px' }}>
-    <div style={{ textAlign: 'center', maxWidth: '400px', padding: '0 20px' }}>
-      <div style={{ fontSize: '44px', marginBottom: '20px' }}>🔒</div>
-      <div style={{ fontFamily: 'var(--D)', fontSize: '20px', fontWeight: 800, color: 'var(--tx)', marginBottom: '12px' }}>
-        {feature} is a Pro feature
+const ProGate = ({ feature, children }: { feature: string; children: React.ReactNode }) => (
+  <div style={{ position: 'relative' }}>
+    <div style={{ filter: 'blur(3px)', opacity: 0.4, pointerEvents: 'none', userSelect: 'none' }}>
+      {children}
+    </div>
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+      <div style={{
+        background: 'rgba(10,10,10,.9)',
+        border: '1px solid rgba(255,61,61,.25)',
+        borderRadius: '16px',
+        padding: '32px 36px',
+        textAlign: 'center',
+        maxWidth: '360px',
+        width: '100%',
+        backdropFilter: 'blur(16px)',
+        boxShadow: '0 24px 48px rgba(0,0,0,.6)',
+      }}>
+        <div style={{
+          width: '48px', height: '48px', borderRadius: '12px',
+          background: 'rgba(255,61,61,.12)', border: '1px solid rgba(255,61,61,.2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 18px', fontSize: '22px',
+        }}>🔒</div>
+        <div style={{ fontFamily: 'var(--D)', fontSize: '17px', fontWeight: 800, color: 'var(--tx)', marginBottom: '10px' }}>
+          {feature} is a Pro feature
+        </div>
+        <p style={{ color: 'var(--tx2)', fontSize: '13px', lineHeight: '1.7', marginBottom: '24px' }}>
+          Upgrade to Pro to unlock {feature.toLowerCase()} and start recovering failed payments automatically.
+        </p>
+        <Link href="/upgrade">
+          <button className="tb-btn red" style={{ fontSize: '13px', padding: '10px 24px', width: '100%' }}>
+            Upgrade to Pro →
+          </button>
+        </Link>
       </div>
-      <p style={{ color: 'var(--tx2)', fontSize: '14px', lineHeight: '1.7', marginBottom: '28px' }}>
-        Upgrade to Pro to unlock {feature.toLowerCase()} and start recovering failed payments automatically.
-      </p>
-      <Link href="/upgrade">
-        <button className="tb-btn red" style={{ fontSize: '13px', padding: '10px 22px' }}>
-          Upgrade to Pro →
-        </button>
-      </Link>
     </div>
   </div>
 )
@@ -1932,7 +1952,12 @@ export default function DashboardPage() {
             )}
 
             {/* ── AUTO-RECOVERY / EMAIL / ALERTS ── */}
-            {activeNav === 'auto-recovery' && (isPro ? <AutoRecoveryView allPayments={allPayments} canRetry={connectionScope === 'read_write'} /> : <ProUpgradeCard feature={PRO_FEATURE_LABELS[activeNav]} />)}
+            {activeNav === 'auto-recovery' && (isPro
+              ? <AutoRecoveryView allPayments={allPayments} canRetry={connectionScope === 'read_write'} />
+              : <ProGate feature={PRO_FEATURE_LABELS[activeNav]}>
+                  <AutoRecoveryView allPayments={allPayments} canRetry={false} />
+                </ProGate>
+            )}
             {activeNav === 'email' && (isPro ? (
               <>
                 <MessageTemplatesCard
@@ -1952,7 +1977,11 @@ export default function DashboardPage() {
                 />
                 <EmailSequenceView allPayments={allPayments} />
               </>
-            ) : <ProUpgradeCard feature={PRO_FEATURE_LABELS[activeNav]} />)}
+            ) : (
+              <ProGate feature={PRO_FEATURE_LABELS[activeNav]}>
+                <EmailSequenceView allPayments={allPayments} />
+              </ProGate>
+            ))}
             {activeNav === 'alerts' && (isPro ? (
               <AlertsView
                 slackInput={slackInput}
@@ -1977,7 +2006,17 @@ export default function DashboardPage() {
                 telegramSaveMsg={telegramSaveMsg}
                 telegramTestMsg={telegramTestMsg}
               />
-            ) : <ProUpgradeCard feature={PRO_FEATURE_LABELS[activeNav]} />)}
+            ) : (
+              <ProGate feature={PRO_FEATURE_LABELS[activeNav]}>
+                <AlertsView
+                  slackInput="" setSlackInput={() => {}} slackSaving={false} saveSlackWebhook={() => {}}
+                  slackTesting={false} testSlackAlert={() => {}} slackWebhookUrl="" slackSaveMsg="" slackTestMsg=""
+                  emailAlertsEnabled={false} toggleEmailAlerts={() => {}} emailAlertsLoading={false}
+                  telegramInput="" setTelegramInput={() => {}} telegramSaving={false} saveTelegramChatId={() => {}}
+                  telegramTesting={false} testTelegramAlert={() => {}} telegramChatId="" telegramSaveMsg="" telegramTestMsg=""
+                />
+              </ProGate>
+            ))}
 
             {/* ── SETTINGS ── */}
             {activeNav === 'settings' && (
