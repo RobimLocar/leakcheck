@@ -96,6 +96,13 @@ export default function UpgradePage() {
       .then(d => { if (typeof d.taken === 'number') setLtdTaken(d.taken) })
       .catch(() => {})
 
+    if (typeof window !== 'undefined' && (window as any).fbq) {
+      ;(window as any).fbq('track', 'ViewContent', {
+        content_name: 'Upgrade Page',
+        content_category: 'Pricing',
+      })
+    }
+
     return () => clearTimeout(t)
   }, [])
 
@@ -103,6 +110,13 @@ export default function UpgradePage() {
     if (checkoutLoading) return
     setCheckoutLoading(plan)
     setCheckoutError(null)
+    if (typeof window !== 'undefined' && (window as any).fbq) {
+      ;(window as any).fbq('track', 'InitiateCheckout', {
+        content_name: plan === 'lifetime' ? 'LeakCheck Lifetime' : 'LeakCheck Recovery Monthly',
+        value: plan === 'lifetime' ? 149 : 29,
+        currency: 'USD',
+      })
+    }
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',

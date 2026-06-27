@@ -34,6 +34,9 @@ function LoginForm() {
       setError(authError.message)
     } else {
       setSent(true)
+      if (typeof window !== 'undefined' && (window as any).fbq) {
+        ;(window as any).fbq('track', 'Lead', { content_name: 'Magic Link Signup' })
+      }
     }
   }
 
