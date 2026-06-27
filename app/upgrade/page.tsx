@@ -6,9 +6,13 @@ import { fireFbq } from '@/lib/fbq'
 
 const LTD_TOTAL = 20
 
+const AVATAR_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#14b8a6']
+function avatarColor(name: string) {
+  return AVATAR_COLORS[(name.charCodeAt(0) ?? 65) % AVATAR_COLORS.length]
+}
+
 const TESTIMONIALS = [
   {
-    src: 'https://i.pravatar.cc/72?img=11',
     name: 'Mike K.',
     handle: '@mikesaas · $8k MRR',
     body: (
@@ -17,7 +21,6 @@ const TESTIMONIALS = [
     amount: '+$1,240 first month',
   },
   {
-    src: 'https://i.pravatar.cc/72?img=44',
     name: 'Sara V.',
     handle: '@sarav · Newsletter',
     body: (
@@ -26,7 +29,6 @@ const TESTIMONIALS = [
     amount: '+$340 day one',
   },
   {
-    src: 'https://i.pravatar.cc/72?img=13',
     name: 'Paulo S.',
     handle: '@paulos · $15k MRR',
     body: (
@@ -182,14 +184,10 @@ export default function UpgradePage() {
         <div className="social-proof">
           <div className="sp-item">
             <div className="sp-avatars">
-              {['11', '47', '33', '44', '57'].map((id) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={id}
-                  className="sp-av"
-                  src={`https://i.pravatar.cc/56?img=${id}`}
-                  alt=""
-                />
+              {['Mike K.', 'Sara V.', 'Tom M.', 'Dan R.', 'Nina W.'].map((name) => (
+                <div key={name} className="sp-av" style={{ background: avatarColor(name) }}>
+                  {name[0]}
+                </div>
               ))}
             </div>
             <span>
@@ -331,8 +329,7 @@ export default function UpgradePage() {
             {TESTIMONIALS.map((t) => (
               <div key={t.name} className="tcard">
                 <div className="tcard-head">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img className="tcard-av" src={t.src} alt={t.name} />
+                  <div className="tcard-av" style={{ background: avatarColor(t.name) }}>{t.name[0]}</div>
                   <div>
                     <div className="tcard-name">{t.name}</div>
                     <div className="tcard-handle">{t.handle}</div>

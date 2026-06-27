@@ -17,27 +17,31 @@ const TICKER_ITEMS = [
   '🔥 First 20 spots get lifetime access for $149',
 ]
 
+const AVATAR_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#14b8a6']
+function avatarColor(name: string) {
+  return AVATAR_COLORS[(name.charCodeAt(0) ?? 65) % AVATAR_COLORS.length]
+}
+
 interface Testimonial {
   name: string
   handle: string
   body: string
   amt: string
-  img: string
 }
 
 const TESTIMONIALS: Testimonial[] = [
-  { name: 'Mike K.', handle: '@mikesaas · $8k MRR', body: 'Connected LeakCheck and found I was losing <b>$1,240/month</b> to failed payments. Had absolutely no idea.', amt: '+$1,240 recovered', img: 'https://i.pravatar.cc/64?img=11' },
-  { name: 'Jen L.', handle: '@indie_jen · Membership', body: 'I was blaming my product for churn. Turns out <b>38% was just failed cards</b>. Showed me in 60 seconds.', amt: '+$620 recovered', img: 'https://i.pravatar.cc/64?img=47' },
-  { name: 'Tom M.', handle: '@buildinpublic · SaaS', body: 'Should be built into Stripe. ROI on day one. Recovery sequence paid for 6 months in week one.', amt: '+$890 recovered', img: 'https://i.pravatar.cc/64?img=33' },
-  { name: 'Sara V.', handle: '@sarav · Newsletter', body: 'Found <b>$340 in expired cards</b> the first time I connected. Setup took literally 2 minutes.', amt: '+$340 recovered', img: 'https://i.pravatar.cc/64?img=44' },
-  { name: 'Dan R.', handle: '@danr · $3k MRR', body: 'Thought my churn was a product problem. It was a payment problem. Way easier fix.', amt: '+$410 recovered', img: 'https://i.pravatar.cc/64?img=57' },
-  { name: 'Lena B.', handle: '@lenab · Course creator', body: 'Students were losing access because cards expired. <b>LeakCheck caught 12</b> automatically.', amt: '+$588 recovered', img: 'https://i.pravatar.cc/64?img=25' },
-  { name: 'Chris O.', handle: '@chriso · Bootstrapped', body: 'Dead simple. One number. I check it every Monday morning. Never going back.', amt: '+$270 recovered', img: 'https://i.pravatar.cc/64?img=60' },
-  { name: 'Mia T.', handle: '@miat · SaaS founder', body: "I was losing <b>6% of MRR every month</b> to failed payments. That's nearly 3 months of ARR per year.", amt: '+$1,800 recovered', img: 'https://i.pravatar.cc/64?img=38' },
-  { name: 'Paulo S.', handle: '@paulos · $15k MRR', body: 'Most boring ROI I\'ve ever gotten. Connect, see number, recover money. Zero effort after setup.', amt: '+$2,100 recovered', img: 'https://i.pravatar.cc/64?img=13' },
-  { name: 'Fiona M.', handle: '@fionam · Coaching', body: 'Recovery emails it sends are actually good — not spammy. Clients thanked me for the heads up.', amt: '+$490 recovered', img: 'https://i.pravatar.cc/64?img=29' },
-  { name: 'Alex H.', handle: '@alexh · DevTools', body: 'Wish I had this 2 years ago. I estimate I lost <b>over $15k</b> to failed payments I never knew about.', amt: '+$750/mo now', img: 'https://i.pravatar.cc/64?img=52' },
-  { name: 'Nina W.', handle: '@ninaw · B2B SaaS', body: 'Simple, fast, pays for itself 10x every month. Best $29 I spend. No contest.', amt: '+$960 recovered', img: 'https://i.pravatar.cc/64?img=41' },
+  { name: 'Mike K.', handle: '@mikesaas · $8k MRR', body: 'Connected LeakCheck and found I was losing <b>$1,240/month</b> to failed payments. Had absolutely no idea.', amt: '+$1,240 recovered' },
+  { name: 'Jen L.', handle: '@indie_jen · Membership', body: 'I was blaming my product for churn. Turns out <b>38% was just failed cards</b>. Showed me in 60 seconds.', amt: '+$620 recovered' },
+  { name: 'Tom M.', handle: '@buildinpublic · SaaS', body: 'Should be built into Stripe. ROI on day one. Recovery sequence paid for 6 months in week one.', amt: '+$890 recovered' },
+  { name: 'Sara V.', handle: '@sarav · Newsletter', body: 'Found <b>$340 in expired cards</b> the first time I connected. Setup took literally 2 minutes.', amt: '+$340 recovered' },
+  { name: 'Dan R.', handle: '@danr · $3k MRR', body: 'Thought my churn was a product problem. It was a payment problem. Way easier fix.', amt: '+$410 recovered' },
+  { name: 'Lena B.', handle: '@lenab · Course creator', body: 'Students were losing access because cards expired. <b>LeakCheck caught 12</b> automatically.', amt: '+$588 recovered' },
+  { name: 'Chris O.', handle: '@chriso · Bootstrapped', body: 'Dead simple. One number. I check it every Monday morning. Never going back.', amt: '+$270 recovered' },
+  { name: 'Mia T.', handle: '@miat · SaaS founder', body: "I was losing <b>6% of MRR every month</b> to failed payments. That's nearly 3 months of ARR per year.", amt: '+$1,800 recovered' },
+  { name: 'Paulo S.', handle: '@paulos · $15k MRR', body: 'Most boring ROI I\'ve ever gotten. Connect, see number, recover money. Zero effort after setup.', amt: '+$2,100 recovered' },
+  { name: 'Fiona M.', handle: '@fionam · Coaching', body: 'Recovery emails it sends are actually good — not spammy. Clients thanked me for the heads up.', amt: '+$490 recovered' },
+  { name: 'Alex H.', handle: '@alexh · DevTools', body: 'Wish I had this 2 years ago. I estimate I lost <b>over $15k</b> to failed payments I never knew about.', amt: '+$750/mo now' },
+  { name: 'Nina W.', handle: '@ninaw · B2B SaaS', body: 'Simple, fast, pays for itself 10x every month. Best $29 I spend. No contest.', amt: '+$960 recovered' },
 ]
 
 const COL_INDICES = [
@@ -104,8 +108,7 @@ function TestimonialCard({ t }: { t: Testimonial }) {
   return (
     <div className="tc">
       <div className="tc-h">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="tc-av" src={t.img} alt={t.name} loading="lazy" />
+        <div className="tc-av" style={{ background: avatarColor(t.name) }}>{t.name[0]}</div>
         <div>
           <div className="tc-nm">{t.name}</div>
           <div className="tc-hd">{t.handle}</div>

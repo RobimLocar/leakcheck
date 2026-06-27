@@ -354,7 +354,7 @@ nav {
 .tc { width: 210px; flex-shrink: 0; background: var(--s2); border: 1px solid var(--bd); border-radius: 12px; padding: 16px; transition: border-color .2s; }
 .tc:hover { border-color: var(--bd2); }
 .tc-h { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
-.tc-av { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; object-fit: cover; }
+.tc-av { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; letter-spacing: 0; }
 .tc-nm { font-size: 12.5px; font-weight: 500; color: var(--tx); line-height: 1.2; }
 .tc-hd { font-size: 11px; color: var(--tx3); }
 .tc-b { font-size: 12.5px; color: var(--tx2); line-height: 1.55; font-weight: 300; }
@@ -716,7 +716,7 @@ canvas#chart { width: 100%; height: 140px; display: block; }
 .social-proof { display: flex; align-items: center; justify-content: center; gap: 24px; margin-bottom: 40px; flex-wrap: wrap; animation: fadeUp .5s ease .15s both; }
 .sp-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--tx2); }
 .sp-avatars { display: flex; }
-.sp-av { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--bg); margin-right: -8px; object-fit: cover; }
+.sp-av { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--bg); margin-right: -8px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0; }
 .sp-divider { width: 1px; height: 20px; background: var(--bd); }
 
 /* ── PRICING GRID (3-col) ── */
@@ -750,7 +750,7 @@ canvas#chart { width: 100%; height: 140px; display: block; }
 .tcard { background: var(--s2); border: 1px solid var(--bd); border-radius: 12px; padding: 20px; transition: border-color .2s, transform .2s; }
 .tcard:hover { border-color: var(--bd2); transform: translateY(-2px); }
 .tcard-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.tcard-av { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.tcard-av { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; }
 .tcard-name { font-size: 13px; font-weight: 500; color: var(--tx); }
 .tcard-handle { font-size: 11px; color: var(--tx3); }
 .tcard-body { font-size: 13.5px; color: var(--tx2); line-height: 1.6; font-weight: 300; }
