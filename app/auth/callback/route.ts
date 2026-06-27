@@ -30,7 +30,8 @@ export async function GET(request: NextRequest) {
 
       console.log('[auth/callback] profile:', profile)
 
-      if (profile && !profile.welcome_sent) {
+      const isNewUser = profile != null && !profile.welcome_sent
+      if (isNewUser) {
         await admin
           .from('profiles')
           .update({ welcome_sent: true })
@@ -41,7 +42,9 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      return NextResponse.redirect(`${origin}${next}`)
+      // New users go straight to onboarding — skip the empty dashboard
+      const destination = isNewUser ? '/onboarding' : next
+      return NextResponse.redirect(`${origin}${destination}`)
     }
   }
 

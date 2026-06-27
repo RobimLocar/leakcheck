@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/cfo-report",
       "schedule": "0 9 1 * *"
+    },
+    {
+      "path": "/api/cron/activation-reminder",
+      "schedule": "0 14 * * *"
     }
   ]
 }

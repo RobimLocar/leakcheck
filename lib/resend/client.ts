@@ -119,6 +119,44 @@ export async function sendOperatorAlert(subject: string, message: string): Promi
 // Sent by LeakCheck to the founder who just signed up — the recipient is a
 // LeakCheck user, so full brand identity (dark theme, logo dot) is correct
 // here, unlike the customer-facing recovery emails below.
+export async function sendActivationReminder(email: string): Promise<void> {
+  const { error } = await resend.emails.send({
+    from: DEFAULT_FROM,
+    to: email,
+    subject: 'Your Stripe data is waiting — 60 seconds to connect',
+    html: `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;font-family:${FONT};">
+  <tr><td align="center">
+    <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;padding:48px 32px;">
+      <tr><td>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+          <tr>
+            <td style="padding-right:8px;"><div style="width:8px;height:8px;border-radius:50%;background:#ff3d3d;"></div></td>
+            <td><span style="color:#fff;font-size:15px;font-weight:700;letter-spacing:-0.01em;">LeakCheck</span></td>
+          </tr>
+        </table>
+        <h1 style="color:#fff;font-size:22px;font-weight:800;margin:0 0 16px;letter-spacing:-0.02em;line-height:1.25;">You still haven't seen your number.</h1>
+        <p style="color:#999;font-size:14px;line-height:1.6;margin:0 0 12px;">Most founders who connect Stripe find anywhere from <strong style="color:#fff;">$200 to $2,000+</strong> in failed payments they didn't know about.</p>
+        <p style="color:#999;font-size:14px;line-height:1.6;margin:0 0 28px;">Takes 60 seconds. Read-only by default — we never move money without your explicit permission.</p>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+          <tr><td style="background:#ff3d3d;border-radius:10px;">
+            <a href="${SITE_URL}/onboarding" style="display:inline-block;color:#fff;padding:14px 28px;text-decoration:none;font-weight:700;font-size:14px;">See how much you're losing →</a>
+          </td></tr>
+        </table>
+        <p style="color:#555;font-size:12px;line-height:1.6;margin:0 0 4px;">No credit card required · Free to connect and view.</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:40px;border-top:1px solid #1a1a1a;">
+          <tr><td style="padding-top:20px;">
+            <p style="color:#333;font-size:11px;line-height:1.6;margin:0;">You signed up at getleakcheck.com. <a href="${SITE_URL}/dashboard" style="color:#444;">Go to dashboard</a></p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>`,
+  })
+  if (error) console.error('[resend] activation reminder failed:', error.message)
+}
+
 export async function sendWelcomeEmail(email: string): Promise<void> {
   const { error } = await resend.emails.send({
     from: DEFAULT_FROM,
