@@ -547,7 +547,7 @@ const AccountRiskView = ({ allPayments, isPro, canRetry }: { allPayments: DbPaym
 
 const ProGate = ({ feature, children }: { feature: string; children: React.ReactNode }) => (
   <div style={{ position: 'relative' }}>
-    <div style={{ filter: 'blur(3px)', opacity: 0.4, pointerEvents: 'none', userSelect: 'none' }}>
+    <div style={{ opacity: 0.35, pointerEvents: 'none', userSelect: 'none' }}>
       {children}
     </div>
     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
