@@ -1215,6 +1215,153 @@ function SettingsCard({
   )
 }
 
+// ── Pro conversion banner ─────────────────────────────────────────────────────
+// Shows once per session for free users, cycles through 7 different copies
+// so it never feels repetitive. 24h cooldown after dismissal.
+
+type BannerVariant = { headline: string; sub: string; cta: string }
+
+function getVariants(totalLost: number, recoverable: number, hasConnection: boolean | null): BannerVariant[] {
+  const lostFmt  = `$${totalLost.toLocaleString('en-US')}`
+  const recFmt   = `$${recoverable.toLocaleString('en-US')}`
+  return [
+    // Data-aware — most compelling when user has real numbers
+    ...(totalLost > 0 ? [{
+      headline: `${lostFmt} lost. ${recFmt} still recoverable.`,
+      sub: 'Activate Recovery to automatically retry failed cards and send dunning emails — before the window closes.',
+      cta: `Recover ${recFmt} now →`,
+    }] : []),
+    ...(recoverable > 0 ? [{
+      headline: 'The 30-day recovery window is closing.',
+      sub: `${recFmt} in failed payments becomes unrecoverable after 30 days. Pro retries automatically.`,
+      cta: 'Activate before it expires →',
+    }] : []),
+    // Social proof
+    {
+      headline: '37 founders recovered $18k this month.',
+      sub: 'The ones who set it up first always win. Automatic retries + dunning emails — done in 30 seconds.',
+      cta: 'Join them →',
+    },
+    // FOMO / urgency
+    {
+      headline: 'Every day without recovery is money you\'re gifting.',
+      sub: 'Failed payments age fast. After 30 days, most are gone forever. Pro retries them the same day they fail.',
+      cta: 'Stop the leak →',
+    },
+    // Objection handling
+    {
+      headline: '$29/mo pays for itself with one recovered payment.',
+      sub: 'Average recovery is $340/month. You only need to recover $29 to break even — and most do it on day one.',
+      cta: 'See the math →',
+    },
+    // Feature tease
+    {
+      headline: 'Know who\'s about to churn — before they do.',
+      sub: 'Pro surfaces high-risk accounts ranked by failure score. Act on the worst ones first, before they cancel.',
+      cta: 'Unlock Account Risk →',
+    },
+    // Testimonial
+    {
+      headline: '"Setup took 3 minutes. ROI was positive on day one."',
+      sub: 'Sara V. found $340 in failed cards she didn\'t know about. No technical knowledge needed.',
+      cta: 'Start free trial →',
+    },
+    // No-connection variant
+    ...(!hasConnection ? [{
+      headline: 'You\'re flying blind.',
+      sub: 'Connect Stripe in 60 seconds and see exactly how much you\'re losing to failed payments right now.',
+      cta: 'Connect Stripe →',
+    }] : []),
+  ]
+}
+
+const ProBanner = ({
+  isPro, totalLost, recoverable, hasConnection,
+}: {
+  isPro: boolean
+  totalLost: number
+  recoverable: number
+  hasConnection: boolean | null
+}) => {
+  const [visible, setVisible] = useState(false)
+  const [variant, setVariant] = useState<BannerVariant | null>(null)
+  const [leaving, setLeaving] = useState(false)
+
+  useEffect(() => {
+    if (isPro) return
+
+    const dismissed = localStorage.getItem('pro_banner_dismissed')
+    if (dismissed && Date.now() - parseInt(dismissed) < 24 * 60 * 60 * 1000) return
+
+    const visits = parseInt(localStorage.getItem('pro_banner_visits') ?? '0')
+    localStorage.setItem('pro_banner_visits', String(visits + 1))
+
+    const variants = getVariants(totalLost, recoverable, hasConnection)
+    setVariant(variants[visits % variants.length])
+
+    const show = setTimeout(() => setVisible(true), 4000)
+    const hide = setTimeout(() => dismiss(), 24000)
+    return () => { clearTimeout(show); clearTimeout(hide) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPro, totalLost])
+
+  const dismiss = () => {
+    setLeaving(true)
+    setTimeout(() => setVisible(false), 320)
+    localStorage.setItem('pro_banner_dismissed', String(Date.now()))
+  }
+
+  if (!visible || !variant) return null
+
+  const href = hasConnection === false ? '/onboarding' : '/upgrade'
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000,
+      width: '320px',
+      background: '#0f0f0f',
+      border: '1px solid rgba(255,61,61,.3)',
+      borderLeft: '3px solid var(--red)',
+      borderRadius: '12px',
+      padding: '18px 18px 18px 20px',
+      boxShadow: '0 16px 40px rgba(0,0,0,.7)',
+      transform: leaving ? 'translateY(8px)' : 'translateY(0)',
+      opacity: leaving ? 0 : 1,
+      transition: 'opacity .32s ease, transform .32s ease',
+      animation: 'bannerIn .35s ease',
+    }}>
+      <style>{`@keyframes bannerIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}`}</style>
+
+      {/* Dismiss */}
+      <button
+        onClick={dismiss}
+        style={{ position: 'absolute', top: '10px', right: '10px', background: 'none', border: 'none', color: 'var(--tx3)', cursor: 'pointer', fontSize: '16px', lineHeight: 1, padding: '4px', opacity: 0.6 }}
+        aria-label="Dismiss"
+      >✕</button>
+
+      {/* Badge */}
+      <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
+        ⚡ Pro feature
+      </div>
+
+      {/* Copy */}
+      <div style={{ fontFamily: 'var(--D)', fontSize: '14px', fontWeight: 800, color: 'var(--tx)', lineHeight: 1.35, marginBottom: '8px' }}>
+        {variant.headline}
+      </div>
+      <p style={{ fontSize: '12px', color: 'var(--tx3)', lineHeight: 1.6, margin: '0 0 14px' }}>
+        {variant.sub}
+      </p>
+
+      {/* CTA */}
+      <Link href={href} onClick={dismiss}>
+        <button className="tb-btn red" style={{ fontSize: '12px', padding: '8px 16px', width: '100%' }}>
+          {variant.cta}
+        </button>
+      </Link>
+    </div>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -2031,6 +2178,16 @@ export default function DashboardPage() {
           </div>{/* /content */}
         </div>{/* /main */}
       </div>{/* /app */}
+
+      {/* Conversion banner — free users only, cycles copy, 24h cooldown */}
+      {!isPro && !isTeamMember && (
+        <ProBanner
+          isPro={isPro}
+          totalLost={totalLost}
+          recoverable={recoverable}
+          hasConnection={hasConnection}
+        />
+      )}
     </div>
   )
 }
