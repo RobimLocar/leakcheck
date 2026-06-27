@@ -970,7 +970,8 @@ export default function LandingPage() {
           engineers, not founders. LeakCheck is what I wish had existed from day one.&rdquo;
         </p>
         <div className="founder-byline">
-          <div className="founder-av">R</div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/robison.jpg" alt="Robison Oliveira" className="founder-av" />
           <div className="founder-meta">
             <div className="founder-name">Robison Oliveira</div>
             <div className="founder-role">Civil Engineer · Marketer · Indie Founder</div>
