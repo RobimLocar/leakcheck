@@ -410,6 +410,75 @@ export async function sendTeamInvite(opts: {
   if (error) console.error('[resend] team invite failed:', error.message)
 }
 
+const STRIPE_UPGRADE_STEPS: Record<number, { subject: string; headline: string; body: string; cta: string }> = {
+  1: {
+    subject: 'Your Stripe is connected — one step left to start recovering',
+    headline: 'You\'re in. Now activate recovery.',
+    body: 'You connected your Stripe account — that\'s the hard part done.<br><br>Right now LeakCheck is <strong style="color:#fff;">watching your payments</strong> but not recovering them yet. Upgrade to Pro and every failed charge gets an automatic retry + recovery email sent to your customer.<br><br>Average recovery in the first month: <strong style="color:#22c55e;">$340</strong>. The plan costs $29.',
+    cta: 'Activate Recovery — $29/mo →',
+  },
+  2: {
+    subject: 'Your dashboard has data. Your wallet doesn\'t — yet.',
+    headline: 'You can see the leak. Now plug it.',
+    body: 'You\'ve seen what\'s failing in your Stripe account. Every one of those failed payments is recoverable — with the right retry timing and the right email to your customer.<br><br>On the Free plan, LeakCheck watches. On Pro, it <strong style="color:#fff;">acts</strong>. One upgrade, and every future failed payment gets a recovery sequence automatically.',
+    cta: 'Start Recovering →',
+  },
+  3: {
+    subject: 'One week in — still leaving money on the table',
+    headline: 'A week of watching. Zero recovering.',
+    body: 'You\'ve had a full week of visibility into your failed payments. If you\'re not on Pro yet, those charges are sitting there unrecovered.<br><br>Worth mentioning: there\'s a <strong style="color:#fff;">Lifetime Deal at $149</strong> — pay once, use forever, all future features included. 13 of 20 spots taken. Once it\'s gone, it\'s monthly only.',
+    cta: 'Get Lifetime Deal — $149 →',
+  },
+  4: {
+    subject: 'Last nudge from LeakCheck — then we\'ll leave you alone',
+    headline: 'Last one. Promise.',
+    body: 'You connected Stripe two weeks ago and you\'ve seen your data. If the numbers you saw were enough to make you think "I should fix this" — this is the moment.<br><br>If the timing\'s just not right, no hard feelings. You can upgrade anytime from your dashboard when you\'re ready.<br><br>The Free plan stays free forever.',
+    cta: 'Upgrade when ready →',
+  },
+}
+
+function stripeUpgradeHtml(copy: { headline: string; body: string; cta: string }): string {
+  return `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;font-family:${FONT};">
+  <tr><td align="center">
+    <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;padding:48px 32px;">
+      <tr><td>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+          <tr>
+            <td style="padding-right:8px;"><div style="width:8px;height:8px;border-radius:50%;background:#ff3d3d;"></div></td>
+            <td><span style="color:#fff;font-size:15px;font-weight:700;letter-spacing:-0.01em;">LeakCheck</span></td>
+          </tr>
+        </table>
+        <h1 style="color:#fff;font-size:22px;font-weight:800;margin:0 0 16px;letter-spacing:-0.02em;line-height:1.25;">${copy.headline}</h1>
+        <p style="color:#999;font-size:14px;line-height:1.6;margin:0 0 28px;">${copy.body}</p>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+          <tr><td style="background:#ff3d3d;border-radius:10px;">
+            <a href="${SITE_URL}/upgrade" style="display:inline-block;color:#fff;padding:14px 28px;text-decoration:none;font-weight:700;font-size:14px;">${copy.cta}</a>
+          </td></tr>
+        </table>
+        <p style="color:#555;font-size:12px;line-height:1.6;margin:0 0 4px;">Free plan stays free · No pressure.</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:40px;border-top:1px solid #1a1a1a;">
+          <tr><td style="padding-top:20px;">
+            <p style="color:#333;font-size:11px;line-height:1.6;margin:0;">You connected Stripe at getleakcheck.com. <a href="${SITE_URL}/dashboard" style="color:#444;">Go to dashboard</a></p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>`
+}
+
+export async function sendStripeUpgradeReminder(email: string, step: number): Promise<void> {
+  const copy = STRIPE_UPGRADE_STEPS[step] ?? STRIPE_UPGRADE_STEPS[4]
+  const { error } = await resend.emails.send({
+    from: DEFAULT_FROM,
+    to: email,
+    subject: copy.subject,
+    html: stripeUpgradeHtml(copy),
+  })
+  if (error) console.error(`[resend] stripe upgrade reminder step ${step} failed:`, error.message)
+}
+
 export type CfoReportProps = {
   userEmail: string
   month: string

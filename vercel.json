@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/activation-reminder",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/stripe-upgrade-reminder",
+      "schedule": "0 15 * * *"
     }
   ]
 }
