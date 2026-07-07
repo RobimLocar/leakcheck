@@ -451,7 +451,7 @@ const PaymentsTable = ({
   </div>
 )
 
-const AccountRiskView = ({ allPayments, isPro, canRetry }: { allPayments: DbPayment[]; isPro: boolean; canRetry: boolean }) => {
+const AccountRiskView = ({ allPayments, isPro, canRetry, onRecoverClick }: { allPayments: DbPayment[]; isPro: boolean; canRetry: boolean; onRecoverClick: (amount: number, reason: string) => void }) => {
   const accounts = useMemo(() => computeAccountRisks(allPayments), [allPayments])
 
   const lc = (level: AccountRisk['level']) =>
@@ -528,9 +528,13 @@ const AccountRiskView = ({ allPayments, isPro, canRetry }: { allPayments: DbPaym
               <div style={{ fontSize: '12.5px', color: 'var(--tx3)' }}>
                 🔒 {accounts.length - 3} more account{accounts.length - 3 > 1 ? 's' : ''} hidden — upgrade to see all
               </div>
-              <Link href="/upgrade">
-                <button className="tb-btn red" style={{ fontSize: '12px' }}>See All Accounts →</button>
-              </Link>
+              <button
+                className="tb-btn red"
+                style={{ fontSize: '12px' }}
+                onClick={() => onRecoverClick(accounts[0]?.totalAmount ?? 0, accounts[0]?.topReason ?? 'Bank Decline')}
+              >
+                See All Accounts →
+              </button>
             </div>
           )}
           {!isPro && (
@@ -538,9 +542,13 @@ const AccountRiskView = ({ allPayments, isPro, canRetry }: { allPayments: DbPaym
               <div style={{ fontSize: '12.5px', color: 'var(--tx2)' }}>
                 🔒 Upgrade to automatically recover High risk accounts
               </div>
-              <Link href="/upgrade">
-                <button className="tb-btn red" style={{ fontSize: '12px' }}>Activate Recovery →</button>
-              </Link>
+              <button
+                className="tb-btn red"
+                style={{ fontSize: '12px' }}
+                onClick={() => onRecoverClick(accounts[0]?.totalAmount ?? 0, accounts[0]?.topReason ?? 'Bank Decline')}
+              >
+                Activate Recovery →
+              </button>
             </div>
           )}
         </>
@@ -2184,7 +2192,7 @@ export default function DashboardPage() {
 
             {/* ── ACCOUNT RISK ── */}
             {activeNav === 'accounts' && (
-              <AccountRiskView allPayments={allPayments} isPro={isPro} canRetry={connectionScope === 'read_write'} />
+              <AccountRiskView allPayments={allPayments} isPro={isPro} canRetry={connectionScope === 'read_write'} onRecoverClick={(amount, reason) => setRecoverModal({ amount, reason })} />
             )}
 
             {/* ── PAYMENTS ── */}
