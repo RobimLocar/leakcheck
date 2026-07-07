@@ -437,7 +437,65 @@ const STRIPE_UPGRADE_STEPS: Record<number, { subject: string; headline: string; 
   },
 }
 
-function stripeUpgradeHtml(copy: { headline: string; body: string; cta: string }): string {
+type UpgradeCtx = {
+  totalLost: number
+  failCount: number
+  topReason: string | null
+  daysLeft: number
+}
+
+function buildUpgradeCopy(step: number, ctx?: UpgradeCtx): { subject: string; headline: string; body: string; cta: string } {
+  const base = STRIPE_UPGRADE_STEPS[step] ?? STRIPE_UPGRADE_STEPS[4]
+
+  // No real data — use generic copy as-is
+  if (!ctx || ctx.totalLost === 0) return base
+
+  const amt = `$${ctx.totalLost.toLocaleString('en-US')}`
+  const count = ctx.failCount
+  const reason = ctx.topReason
+  const days = ctx.daysLeft
+
+  if (step === 1) {
+    return {
+      subject: `You have ${amt} in failed payments — one step to recover them`,
+      headline: `You're connected. ${amt} is waiting.`,
+      body: `LeakCheck just scanned your Stripe — you have <strong style="color:#ff3d3d;">${amt}</strong> across ${count} failed payment${count !== 1 ? 's' : ''}${reason ? ` (most common reason: ${reason})` : ''}.<br><br>On the Free plan, we watch. On Pro, we act: automatic retries and a recovery email sequence go out to your customers — no manual work.<br><br>Average recovery: <strong style="color:#22c55e;">$340/month</strong>. The plan costs $29.`,
+      cta: `Recover ${amt} now — $29/mo →`,
+    }
+  }
+
+  if (step === 2) {
+    return {
+      subject: `${amt} still unrecovered — ${days} days left in the window`,
+      headline: `You can see the leak. Now plug it.`,
+      body: `You have <strong style="color:#ff3d3d;">${amt}</strong> in failed payments sitting in your dashboard right now. Every day you wait, the 30-day recovery window gets shorter.<br><br><strong style="color:#fff;">${days} days left</strong> before these payments age out and become unrecoverable.<br><br>Pro retries failed charges automatically and sends dunning emails to your customers. One upgraded plan, zero manual work.`,
+      cta: `Recover ${amt} before it expires →`,
+    }
+  }
+
+  if (step === 3) {
+    return {
+      subject: `One week in — ${amt} still unrecovered`,
+      headline: `A week of watching. Zero recovering.`,
+      body: `You've had a full week of visibility into your failed payments. Those <strong style="color:#ff3d3d;">${amt}</strong> are still sitting there unrecovered.<br><br>Worth mentioning: there's a <strong style="color:#fff;">Lifetime Deal at $149</strong> — pay once, use forever, all future features included. Once it's gone, it's monthly only.<br><br>Or go monthly at $29 and cancel anytime.`,
+      cta: `Get Lifetime Deal — $149 →`,
+    }
+  }
+
+  if (step === 4) {
+    return {
+      subject: `Last nudge — ${amt} still on the table`,
+      headline: `Last one. Promise.`,
+      body: `You connected Stripe two weeks ago. Those <strong style="color:#ff3d3d;">${amt}</strong> in failed payments are still sitting in your dashboard — unrecovered.<br><br>If the timing's not right, no hard feelings. You can upgrade anytime from your dashboard.<br><br>The Free plan stays free forever.`,
+      cta: `Upgrade when ready →`,
+    }
+  }
+
+  return base
+}
+
+function stripeUpgradeHtml(copy: { headline: string; body: string; cta: string }, ctx?: UpgradeCtx): string {
+  const hasData = ctx && ctx.totalLost > 0
   return `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;font-family:${FONT};">
   <tr><td align="center">
@@ -449,6 +507,16 @@ function stripeUpgradeHtml(copy: { headline: string; body: string; cta: string }
             <td><span style="color:#fff;font-size:15px;font-weight:700;letter-spacing:-0.01em;">LeakCheck</span></td>
           </tr>
         </table>
+        ${hasData ? `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:16px 20px;margin-bottom:24px;">
+          <tr>
+            <td>
+              <p style="color:#666;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin:0 0 6px;">Unrecovered in your Stripe</p>
+              <p style="color:#ff3d3d;font-size:26px;font-weight:800;margin:0 0 4px;">$${ctx!.totalLost.toLocaleString('en-US')}</p>
+              <p style="color:#555;font-size:12px;margin:0;">${ctx!.failCount} failed payment${ctx!.failCount !== 1 ? 's' : ''}${ctx!.topReason ? ` · mostly ${ctx!.topReason}` : ''} · ${ctx!.daysLeft} days left in window</p>
+            </td>
+          </tr>
+        </table>` : ''}
         <h1 style="color:#fff;font-size:22px;font-weight:800;margin:0 0 16px;letter-spacing:-0.02em;line-height:1.25;">${copy.headline}</h1>
         <p style="color:#999;font-size:14px;line-height:1.6;margin:0 0 28px;">${copy.body}</p>
         <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
@@ -468,13 +536,13 @@ function stripeUpgradeHtml(copy: { headline: string; body: string; cta: string }
 </table>`
 }
 
-export async function sendStripeUpgradeReminder(email: string, step: number): Promise<void> {
-  const copy = STRIPE_UPGRADE_STEPS[step] ?? STRIPE_UPGRADE_STEPS[4]
+export async function sendStripeUpgradeReminder(email: string, step: number, ctx?: UpgradeCtx): Promise<void> {
+  const copy = buildUpgradeCopy(step, ctx)
   const { error } = await resend.emails.send({
     from: DEFAULT_FROM,
     to: email,
     subject: copy.subject,
-    html: stripeUpgradeHtml(copy),
+    html: stripeUpgradeHtml(copy, ctx),
   })
   if (error) console.error(`[resend] stripe upgrade reminder step ${step} failed:`, error.message)
 }

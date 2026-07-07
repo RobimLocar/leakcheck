@@ -339,7 +339,7 @@ const ChartCard = ({
 )
 
 const PaymentsTable = ({
-  filteredPayments, search, setSearch, loading, hasConnection, isPro, canRetry,
+  filteredPayments, search, setSearch, loading, hasConnection, isPro, canRetry, onRecoverClick,
 }: {
   filteredPayments: DbPayment[]
   search: string
@@ -348,6 +348,7 @@ const PaymentsTable = ({
   hasConnection: boolean | null
   isPro: boolean
   canRetry: boolean
+  onRecoverClick: (amount: number, reason: string) => void
 }) => (
   <div className="table-card">
     <div className="table-head">
@@ -405,7 +406,7 @@ const PaymentsTable = ({
       </div>
     ) : (
       filteredPayments.map((p, i) => {
-        const displayName = p.customer_name ?? p.customer_email ?? 'Unknown'
+        const displayName = p.customer_name ?? (p.customer_email ? (isPro ? p.customer_email : maskEmail(p.customer_email)) : 'Unknown')
         const color = avatarColor(p.stripe_invoice_id)
         const ini = getInitials(p.customer_name, p.customer_email)
         const tag = reasonTag(p.failure_reason)
@@ -434,11 +435,13 @@ const PaymentsTable = ({
                   {recoveryStatusShort(p, canRetry)}
                 </span>
               ) : (
-                <Link href="/upgrade">
-                  <button className="recover-btn locked" title="Upgrade to recover">
-                    🔒 Recover
-                  </button>
-                </Link>
+                <button
+                  className="recover-btn locked"
+                  title="Upgrade to recover"
+                  onClick={() => onRecoverClick(p.amount, p.failure_reason)}
+                >
+                  🔒 Recover
+                </button>
               )}
             </div>
           </div>
@@ -1364,6 +1367,67 @@ const ProBanner = ({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+// ── Recover Modal (Free users) ────────────────────────────────────────────────
+
+const RecoverModal = ({
+  amount, reason, onClose,
+}: {
+  amount: number
+  reason: string
+  onClose: () => void
+}) => {
+  const isRetryableReason = reason === 'Insufficient Funds'
+  const dollars = (amount / 100).toFixed(2)
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(0,0,0,.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background: '#0f0f0f', border: '1px solid rgba(255,61,61,.25)', borderRadius: '16px', padding: '32px', maxWidth: '400px', width: '100%', position: 'relative', boxShadow: '0 24px 48px rgba(0,0,0,.7)' }}
+      >
+        <button
+          onClick={onClose}
+          style={{ position: 'absolute', top: '14px', right: '14px', background: 'none', border: 'none', color: 'var(--tx3)', cursor: 'pointer', fontSize: '18px', lineHeight: 1, padding: '4px' }}
+        >✕</button>
+
+        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(255,61,61,.1)', border: '1px solid rgba(255,61,61,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', marginBottom: '16px' }}>
+          💰
+        </div>
+
+        <div style={{ fontFamily: 'var(--D)', fontSize: '20px', fontWeight: 800, color: 'var(--tx)', marginBottom: '8px' }}>
+          Recover ${dollars}
+        </div>
+
+        <p style={{ fontSize: '13px', color: 'var(--tx2)', lineHeight: 1.7, marginBottom: '20px' }}>
+          {isRetryableReason
+            ? <>This payment failed due to <strong style={{ color: 'var(--tx)' }}>Insufficient Funds</strong> — the easiest type to recover. Pro retries the charge automatically over the next few days, no action needed.</>
+            : <>This payment failed due to <strong style={{ color: 'var(--tx)' }}>{reason}</strong>. Pro sends a recovery email sequence to the customer automatically, asking them to update their card.</>
+          }
+        </p>
+
+        <div style={{ padding: '12px 14px', background: 'rgba(255,61,61,.06)', border: '1px solid rgba(255,61,61,.15)', borderRadius: '9px', marginBottom: '20px', fontSize: '12.5px', color: 'var(--tx2)', lineHeight: 1.6 }}>
+          💡 One recovered payment at ${dollars} already covers the cost of a full month of Pro ($29).
+        </div>
+
+        <Link href="/upgrade" style={{ display: 'block' }}>
+          <button className="tb-btn red" style={{ width: '100%', fontSize: '14px', padding: '12px', fontWeight: 700 }}>
+            ⚡ Activate Recovery — $29/mo →
+          </button>
+        </Link>
+        <button
+          onClick={onClose}
+          style={{ width: '100%', marginTop: '10px', background: 'none', border: 'none', color: 'var(--tx3)', fontSize: '12px', cursor: 'pointer', padding: '8px' }}
+        >
+          Maybe later
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const [period, setPeriod] = useState<'7d' | '30d' | '90d' | '12m'>('30d')
   const [search, setSearch] = useState('')
@@ -1379,6 +1443,7 @@ export default function DashboardPage() {
   const [allPayments, setAllPayments] = useState<DbPayment[]>([])
   const [stripeAccountId, setStripeAccountId] = useState<string | null>(null)
   const [connectionScope, setConnectionScope] = useState<'read_only' | 'read_write' | null>(null)
+  const [stripeConnectedAt, setStripeConnectedAt] = useState<Date | null>(null)
   const [userEmail, setUserEmail] = useState('')
   const [isPro, setIsPro] = useState(false)
   const [isTeamMember, setIsTeamMember] = useState(false)
@@ -1409,6 +1474,9 @@ export default function DashboardPage() {
   const [aiDescription, setAiDescription] = useState('')
   const [aiGenerating, setAiGenerating] = useState(false)
   const [aiError, setAiError] = useState('')
+
+  // Recover modal (Free users)
+  const [recoverModal, setRecoverModal] = useState<{ amount: number; reason: string } | null>(null)
 
   // Animated counter values
   const [v1, setV1] = useState(0)
@@ -1478,13 +1546,14 @@ export default function DashboardPage() {
 
     const { data: connection } = await supabase
       .from('stripe_connections')
-      .select('stripe_account_id, scope')
+      .select('stripe_account_id, scope, created_at')
       .maybeSingle()
 
     setHasConnection(!!connection)
     if (connection) {
       setStripeAccountId(connection.stripe_account_id as string)
       setConnectionScope(connection.scope as 'read_only' | 'read_write')
+      setStripeConnectedAt(new Date(connection.created_at as string))
     }
 
     if (!connection) {
@@ -2052,6 +2121,45 @@ export default function DashboardPage() {
                     </Link>
                   </div>
                 )}
+                {/* Urgência 7 dias — só para Free com conexão dentro da janela */}
+                {!loading && !isPro && hasConnection && stripeConnectedAt && allPayments.length > 0 && (() => {
+                  const daysConnected = Math.floor((Date.now() - stripeConnectedAt.getTime()) / 86400000)
+                  const daysLeft = 7 - daysConnected
+                  if (daysLeft <= 0 || daysLeft > 7) return null
+                  return (
+                    <div className="upgrade-banner" style={{ borderColor: 'rgba(245,158,11,.3)', background: 'rgba(245,158,11,.05)' }}>
+                      <div className="ub-left">
+                        <div className="ub-pip" style={{ background: '#f59e0b' }} />
+                        <div>
+                          <div className="ub-title" style={{ color: '#f59e0b' }}>
+                            ⏱ {daysLeft} dia{daysLeft !== 1 ? 's' : ''} restante{daysLeft !== 1 ? 's' : ''} para visualizar seus dados no Free
+                          </div>
+                          <div className="ub-sub">Após 7 dias no plano Free, o histórico de pagamentos expira. Faça upgrade para manter acesso permanente.</div>
+                        </div>
+                      </div>
+                      <Link href="/upgrade">
+                        <button className="ub-btn" style={{ background: 'rgba(245,158,11,.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,.3)' }}>
+                          Manter acesso →
+                        </button>
+                      </Link>
+                    </div>
+                  )
+                })()}
+
+                {!loading && hasConnection && allPayments.length === 0 && (
+                  <div className="upgrade-banner" style={{ borderColor: 'rgba(0,255,136,.25)', background: 'rgba(0,255,136,.04)' }}>
+                    <div className="ub-left">
+                      <div className="ub-pip" style={{ background: 'var(--grn)' }} />
+                      <div>
+                        <div className="ub-title">✓ Monitoring active — no failed payments yet</div>
+                        <div className="ub-sub">LeakCheck is watching your Stripe account. You&apos;ll see data here as soon as a payment fails.</div>
+                      </div>
+                    </div>
+                    <button className="ub-btn" onClick={handleSync} disabled={syncing} style={{ background: 'rgba(0,255,136,.12)', color: 'var(--grn)', border: '1px solid rgba(0,255,136,.3)' }}>
+                      {syncing ? 'Syncing...' : 'Sync now →'}
+                    </button>
+                  </div>
+                )}
                 {!loading && hasConnection && totalLost > 0 && !isPro && (
                   <div className="upgrade-banner">
                     <div className="ub-left">
@@ -2070,7 +2178,7 @@ export default function DashboardPage() {
                 )}
                 <StatCards v1={v1} v2={v2} v3={v3} periodDays={periodDays} isPro={isPro} recoveryRate={recoveryRate} />
                 <ChartCard periodDays={periodDays} chartRef={chartRef} />
-                <PaymentsTable filteredPayments={filteredPayments} search={search} setSearch={setSearch} loading={loading} hasConnection={hasConnection} isPro={isPro} canRetry={connectionScope === 'read_write'} />
+                <PaymentsTable filteredPayments={filteredPayments} search={search} setSearch={setSearch} loading={loading} hasConnection={hasConnection} isPro={isPro} canRetry={connectionScope === 'read_write'} onRecoverClick={(amount, reason) => setRecoverModal({ amount, reason })} />
               </>
             )}
 
@@ -2081,7 +2189,7 @@ export default function DashboardPage() {
 
             {/* ── PAYMENTS ── */}
             {activeNav === 'payments' && (
-              <PaymentsTable filteredPayments={filteredPayments} search={search} setSearch={setSearch} loading={loading} hasConnection={hasConnection} isPro={isPro} canRetry={connectionScope === 'read_write'} />
+              <PaymentsTable filteredPayments={filteredPayments} search={search} setSearch={setSearch} loading={loading} hasConnection={hasConnection} isPro={isPro} canRetry={connectionScope === 'read_write'} onRecoverClick={(amount, reason) => setRecoverModal({ amount, reason })} />
             )}
 
             {/* ── REVENUE ── */}
@@ -2178,6 +2286,15 @@ export default function DashboardPage() {
           </div>{/* /content */}
         </div>{/* /main */}
       </div>{/* /app */}
+
+      {/* Recover modal — Free users clicking the Recover button */}
+      {recoverModal && (
+        <RecoverModal
+          amount={recoverModal.amount}
+          reason={recoverModal.reason}
+          onClose={() => setRecoverModal(null)}
+        />
+      )}
 
       {/* Conversion banner — free users only, cycles copy, 24h cooldown */}
       {!isPro && !isTeamMember && (

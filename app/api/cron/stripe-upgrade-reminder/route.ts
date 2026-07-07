@@ -64,7 +64,37 @@ export async function GET(request: NextRequest) {
     const upcoming = STEPS.find(s => s.step === currentStep + 1)
     if (!upcoming || ageMs < upcoming.minAge) continue
 
-    await sendStripeUpgradeReminder(user.email!, upcoming.step)
+    // Buscar dados reais de pagamentos falhados para personalizar o email
+    const { data: payments } = await admin
+      .from('failed_payments')
+      .select('amount, failure_reason, status')
+      .eq('user_id', user.id)
+      .eq('status', 'open')
+
+    const totalLostCents = payments?.reduce((s, p) => s + p.amount, 0) ?? 0
+    const totalLost = Math.round(totalLostCents / 100)
+    const failCount = payments?.length ?? 0
+
+    // Reason mais frequente
+    const reasonCounts = (payments ?? []).reduce<Record<string, number>>((acc, p) => {
+      acc[p.failure_reason] = (acc[p.failure_reason] ?? 0) + 1
+      return acc
+    }, {})
+    const topReason = Object.keys(reasonCounts).length > 0
+      ? Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0][0]
+      : null
+
+    // Dias desde a conexão (para calcular urgência de janela)
+    const daysConnected = Math.floor(ageMs / 86400000)
+    const daysLeft = Math.max(0, 30 - daysConnected)
+
+    await sendStripeUpgradeReminder(user.email!, upcoming.step, {
+      totalLost,
+      failCount,
+      topReason,
+      daysLeft,
+    })
+
     await admin
       .from('profiles')
       .update({

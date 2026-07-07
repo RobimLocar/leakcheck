@@ -44,7 +44,9 @@ function OnboardingContent() {
   const [scanFill, setScanFill] = useState(0)
   const [realAmount, setRealAmount] = useState<number | null>(null)
   const [realCount, setRealCount] = useState<number | null>(null)
+  const [retryableCount, setRetryableCount] = useState(0)
   const [polling, setPolling] = useState(false)
+  const [connecting, setConnecting] = useState(false)
 
   // Auto-advance to scanning step after successful OAuth callback
   useEffect(() => {
@@ -107,12 +109,16 @@ function OnboardingContent() {
         if (pollCancelled) return
         const { data } = await supabase
           .from('failed_payments')
-          .select('amount, status')
+          .select('amount, status, failure_reason')
           .eq('status', 'open')
         if (pollCancelled) return
         if (data && data.length > 0) {
           setRealAmount(Math.round(data.reduce((s, p) => s + p.amount, 0) / 100))
           setRealCount(data.length)
+          const retryable = (data as { failure_reason?: string }[]).filter(p =>
+            p.failure_reason === 'Insufficient Funds'
+          ).length
+          setRetryableCount(retryable)
           setPolling(false)
           return
         }
@@ -255,12 +261,18 @@ function OnboardingContent() {
                 )}
                 <button
                   className="connect-btn"
-                  onClick={() => { window.location.href = '/api/stripe/connect' }}
+                  disabled={connecting}
+                  onClick={() => { setConnecting(true); window.location.href = '/api/stripe/connect' }}
+                  style={connecting ? { opacity: 0.7, cursor: 'not-allowed' } : undefined}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                    <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.594-7.305h.003z" />
-                  </svg>
-                  Connect with Stripe
+                  {connecting ? 'Redirecting to Stripe...' : (
+                    <>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                        <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.594-7.305h.003z" />
+                      </svg>
+                      Connect with Stripe
+                    </>
+                  )}
                 </button>
                 <p className="cc-note">🔒 Secured by Stripe OAuth · We never see your password</p>
               </div>
@@ -323,9 +335,20 @@ function OnboardingContent() {
               </div>
               <div className="rv-body">
                 {!polling && realAmount !== null && (
-                  <div className="rv-insight">
-                    <strong>The good news:</strong> ${realAmount.toLocaleString('en-US')} of this is still recoverable within the 30-day window — if you act now.
-                  </div>
+                  <>
+                    <div className="rv-insight">
+                      {retryableCount > 0
+                        ? <><strong>{retryableCount} of your {realCount} failed payment{realCount !== 1 ? 's' : ''}</strong> failed due to Insufficient Funds — the easiest to recover. Pro retries them automatically.</>
+                        : <><strong>The good news:</strong> ${realAmount.toLocaleString('en-US')} is still within the 30-day recovery window — Pro sends dunning emails automatically.</>
+                      }
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: 'rgba(255,61,61,.06)', border: '1px solid rgba(255,61,61,.15)', borderRadius: '10px', marginBottom: '16px' }}>
+                      <span style={{ fontSize: '18px' }}>⏱</span>
+                      <span style={{ fontSize: '12.5px', color: 'var(--tx2)', lineHeight: 1.5 }}>
+                        Recovery window closes in <strong style={{ color: 'var(--red)' }}>30 days</strong>. After that, these payments are gone for good.
+                      </span>
+                    </div>
+                  </>
                 )}
                 {polling && (
                   <div className="rv-breakdown" style={{ opacity: 0.25, pointerEvents: 'none' }}>
@@ -360,14 +383,28 @@ function OnboardingContent() {
                   </div>
                 )}
                 <div className="rv-cta-wrap">
-                  <Link href="/upgrade" className="rv-btn main">
-                    {realAmount !== null
-                      ? `⚡ Recover $${realAmount.toLocaleString('en-US')} now — $29/mo`
-                      : '🛡️ Stay protected — $29/mo'}
-                  </Link>
-                  <Link href="/dashboard" className="rv-btn ghost">
-                    View Dashboard first
-                  </Link>
+                  {realAmount !== null ? (
+                    <>
+                      <Link href="/upgrade" className="rv-btn main">
+                        ⚡ Recover ${realAmount.toLocaleString('en-US')} now — $29/mo
+                      </Link>
+                      <div style={{ fontSize: '11.5px', color: 'var(--tx3)', textAlign: 'center', marginTop: '-4px' }}>
+                        One recovered payment pays for the entire month.
+                      </div>
+                      <Link href="/dashboard" className="rv-btn ghost">
+                        View Dashboard first →
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link href="/dashboard" className="rv-btn main" style={{ background: 'rgba(255,255,255,.07)', border: '1px solid var(--bd2)', color: 'var(--tx)' }}>
+                        Go to Dashboard →
+                      </Link>
+                      <Link href="/upgrade" className="rv-btn ghost" style={{ fontSize: '12px' }}>
+                        🛡️ Activate protection — $29/mo
+                      </Link>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
