@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import { fireFbq } from '@/lib/fbq'
 
 const LTD_TOTAL = 20
@@ -78,8 +79,18 @@ export default function UpgradePage() {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [ltdTaken, setLtdTaken] = useState(7)
+  const [isPro, setIsPro] = useState(false)
 
   useEffect(() => {
+    createClient().auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      createClient()
+        .from('profiles')
+        .select('is_pro')
+        .eq('id', user.id)
+        .single()
+        .then(({ data }) => { if (data?.is_pro) setIsPro(true) })
+    })
     const animCount = (target: number, setter: (v: number) => void) => {
       let cur = 0
       const inc = target / (1400 / 16)
@@ -150,6 +161,30 @@ export default function UpgradePage() {
       </header>
 
       <div className="page up-page">
+
+        {isPro && (
+          <div style={{
+            background: 'rgba(0,255,136,.06)',
+            border: '1px solid rgba(0,255,136,.25)',
+            borderRadius: '10px',
+            padding: '12px 18px',
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '13.5px',
+            color: 'var(--tx2)',
+          }}>
+            <span style={{ color: '#00ff88', fontSize: '16px' }}>✓</span>
+            <span>Your <strong style={{ color: 'var(--tx)' }}>Pro plan is active</strong> — recovery is running automatically.</span>
+            <button
+              onClick={() => router.push('/dashboard')}
+              style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--tx3)', fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--B)', textDecoration: 'underline' }}
+            >
+              Back to dashboard
+            </button>
+          </div>
+        )}
 
         {/* Header */}
         <div className="page-header">
