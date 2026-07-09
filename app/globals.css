@@ -676,22 +676,34 @@ canvas#chart { width: 100%; height: 140px; display: block; }
 @media (max-width: 900px) {
   .sidebar { display: none; }
   .mob-top { display: flex; }
-  .app { flex-direction: column; }
-  .main { height: calc(100vh - 53px); }
+  .app { flex-direction: column; height: auto; flex: 1; min-height: 0; }
+  .main { height: calc(100vh - 53px); overflow: hidden; }
   .stat-grid { grid-template-columns: repeat(2,1fr); }
   .sc:nth-child(3), .sc:nth-child(4) { display: none; }
   .th, .tr { grid-template-columns: 2fr 1fr 1fr 1fr; }
   .th > *:nth-child(3), .tr > *:nth-child(3) { display: none; }
   .content { padding: 16px; }
   .topbar { display: none; }
+  .sc-val { font-size: 22px; }
+  .table-title { font-size: 14px; }
 }
 @media (max-width: 480px) {
   .stat-grid { grid-template-columns: 1fr 1fr; }
+  .sc-val { font-size: 20px; }
+  .sc-label { font-size: 10px; }
   .upgrade-banner { flex-direction: column; align-items: flex-start; gap: 10px; }
   .ub-btn { width: 100%; text-align: center; }
-  .th, .tr { grid-template-columns: 2fr 1fr 1fr; }
+  .th, .tr { grid-template-columns: 2fr 1fr 1fr; font-size: 12px; }
   .th > *:nth-child(4), .tr > *:nth-child(4) { display: none; }
   .table-search { display: none; }
+  .tr-name { font-size: 12px; }
+  .tr-sub { display: none; }
+  .recover-btn { font-size: 10px; padding: 4px 8px; }
+}
+@media (max-width: 360px) {
+  .th, .tr { grid-template-columns: 2fr 1fr; }
+  .th > *:nth-child(3), .tr > *:nth-child(3) { display: none; }
+  .th > *:nth-child(5), .tr > *:nth-child(5) { display: none; }
 }
 
 /* ════════════════════════════════════════
@@ -924,8 +936,36 @@ canvas#chart { width: 100%; height: 140px; display: block; }
 @media (max-width: 640px) {
   .timeline-grid { grid-template-columns: 1fr !important; }
   .timeline-line { display: none !important; }
-  /* ROI calculator inner grid stacks on small screens */
   .bc.span2 .bc-inner { grid-template-columns: 1fr !important; }
-  /* Alert cards CTA button full-width */
   #alerts .btn { width: 100%; justify-content: center; }
+}
+
+/* ── FOUNDER SECTION MOBILE ── */
+@media (max-width: 520px) {
+  .founder-section { padding: 40px 20px; }
+  .founder-quote { font-size: 13.5px; line-height: 1.75; margin-bottom: 20px; }
+  .founder-byline { flex-direction: column; align-items: center; gap: 12px; }
+  .founder-meta { text-align: center; }
+}
+
+/* ── UPGRADE PAGE MOBILE ── */
+@media (max-width: 480px) {
+  .up-nav { padding: 12px 16px; }
+  .your-number { padding: 18px 20px; }
+  .yn-amount { font-size: 36px; }
+  .yn-roi { font-size: 22px; }
+  .social-proof { flex-direction: column; gap: 8px; align-items: flex-start; padding: 0 4px; }
+  .sp-divider { display: none; }
+  .pc { padding: 24px 18px; }
+  .pc-price { font-size: 36px; }
+  .tstrip-grid { grid-template-columns: 1fr; }
+  .trust { gap: 12px; padding: 18px; }
+}
+
+/* ── ONBOARDING MOBILE EXTRAS ── */
+@media (max-width: 380px) {
+  .sd-label { display: none; }
+  .sd-line { width: 24px; }
+  .cc-title { font-size: 20px; }
+  .rv-amount { font-size: 44px; }
 }
