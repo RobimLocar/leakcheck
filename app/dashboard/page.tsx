@@ -1973,8 +1973,13 @@ export default function DashboardPage() {
 
       {/* MOBILE TOPBAR */}
       <div className="mob-top">
-        <div style={{ fontFamily: 'var(--D)', fontSize: '15px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div className="pip" />LeakCheck
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ fontFamily: 'var(--D)', fontSize: '15px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="pip" />LeakCheck
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--tx3)', marginLeft: '20px', marginTop: '1px' }}>
+            {activeNav === 'dashboard' ? 'Payment Health' : activeNav === 'accounts' ? 'Account Risk' : activeNav === 'payments' ? 'Payments' : activeNav === 'revenue' ? 'Revenue' : activeNav === 'auto-recovery' ? 'Auto-Recovery' : activeNav === 'email' ? 'Email Sequences' : activeNav === 'alerts' ? 'Alerts' : 'Settings'}
+          </div>
         </div>
         <button
           className={`ham${mobileMenuOpen ? ' open' : ''}`}
@@ -2044,6 +2049,36 @@ export default function DashboardPage() {
 
         {/* MAIN */}
         <div className="main">
+
+          {/* MOBILE PERIOD BAR — replaces topbar controls on mobile */}
+          <div className="mob-period-bar">
+            {(['7d', '30d', '90d', '12m'] as const).map(p => {
+              const locked = !isPro && (p === '90d' || p === '12m')
+              return (
+                <button
+                  key={p}
+                  className={`mob-pb-btn${period === p ? ' on' : ''}`}
+                  onClick={() => locked ? (window.location.href = '/upgrade') : setPeriod(p)}
+                >
+                  {locked ? '🔒 ' : ''}{p}
+                </button>
+              )
+            })}
+            {hasConnection && !isTeamMember && (
+              <button
+                className={`mob-pb-btn sync-btn${syncResult === 'ok' ? ' sync-ok' : syncResult === 'err' ? ' sync-err' : ''}`}
+                onClick={handleSync}
+                disabled={syncing}
+              >
+                {syncing ? '↻ Syncing' : syncResult === 'ok' ? '✓ Synced' : syncResult === 'err' ? '✕ Error' : '↻ Sync'}
+              </button>
+            )}
+            {!isPro && (
+              <button className="mob-pb-upgrade" onClick={() => window.location.href = '/upgrade'}>
+                ⚡ Upgrade
+              </button>
+            )}
+          </div>
 
           {/* TOPBAR */}
           <div className="topbar">

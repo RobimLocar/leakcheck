@@ -672,12 +672,15 @@ canvas#chart { width: 100%; height: 140px; display: block; }
 .mob-drawer { display: none; position: fixed; inset: 0; background: rgba(5,5,7,.97); z-index: 200; flex-direction: column; padding: 20px; }
 .mob-drawer.open { display: flex; }
 
+/* ── MOBILE PERIOD BAR (replaces hidden topbar controls) ── */
+.mob-period-bar { display: none; }
+
 /* ── DASHBOARD RESPONSIVE ── */
 @media (max-width: 900px) {
   .sidebar { display: none; }
   .mob-top { display: flex; }
   .app { flex-direction: column; height: auto; flex: 1; min-height: 0; }
-  .main { height: calc(100vh - 53px); overflow: hidden; }
+  .main { flex: 1; min-height: 0; overflow: hidden; }
   .stat-grid { grid-template-columns: repeat(2,1fr); }
   .sc:nth-child(3), .sc:nth-child(4) { display: none; }
   .th, .tr { grid-template-columns: 2fr 1fr 1fr 1fr; }
@@ -686,6 +689,52 @@ canvas#chart { width: 100%; height: 140px; display: block; }
   .topbar { display: none; }
   .sc-val { font-size: 22px; }
   .table-title { font-size: 14px; }
+  /* Period bar visible on mobile */
+  .mob-period-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: var(--s1);
+    border-bottom: 1px solid var(--bd);
+    flex-shrink: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .mob-period-bar::-webkit-scrollbar { display: none; }
+  .mob-pb-btn {
+    padding: 6px 13px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-family: var(--B);
+    font-weight: 500;
+    background: var(--s2);
+    border: 1px solid var(--bd);
+    color: var(--tx2);
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all .15s;
+  }
+  .mob-pb-btn.on { background: var(--s3); color: var(--tx); border-color: var(--bd2); }
+  .mob-pb-btn.sync-btn { margin-left: 4px; }
+  .mob-pb-btn.sync-ok { color: var(--grn); border-color: rgba(34,197,94,.3); }
+  .mob-pb-btn.sync-err { color: var(--red); border-color: rgba(255,61,61,.3); }
+  .mob-pb-upgrade {
+    margin-left: auto;
+    padding: 6px 13px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-family: var(--B);
+    font-weight: 600;
+    background: var(--red);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
 }
 @media (max-width: 480px) {
   .stat-grid { grid-template-columns: 1fr 1fr; }
