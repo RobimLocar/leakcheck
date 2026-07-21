@@ -78,9 +78,19 @@ export async function POST(request: NextRequest) {
       const subscription = event.data.object
       const customerId   = subscription.customer as string
 
+      // churned_at + a reset upgrade-reminder sequence: without this, the
+      // cron would anchor the win-back sequence on the user's old signup/
+      // connection date and blast the whole 1/3/5/7/14/30-day sequence back
+      // to back within days instead of spreading it out properly.
       await admin
         .from('profiles')
-        .update({ is_pro: false, plan_type: 'free' })
+        .update({
+          is_pro: false,
+          plan_type: 'free',
+          churned_at: new Date().toISOString(),
+          stripe_upgrade_step: 0,
+          stripe_upgrade_sent_at: null,
+        })
         .eq('stripe_customer_id', customerId)
     }
   } catch (err) {

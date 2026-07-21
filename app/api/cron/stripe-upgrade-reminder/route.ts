@@ -1,16 +1,18 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendStripeUpgradeReminder } from '@/lib/resend/client'
-import { isTestEmail } from '@/lib/testAccounts'
 import { type NextRequest, NextResponse } from 'next/server'
 
-// Sequence for non-Pro users. step 0 = none sent, 1 = 24h, 2 = 3d,
-// 3 = 5d (Stripe-vs-LeakCheck objection handling), 4 = 7d, 5 = 14d (final)
+// Sequence for non-Pro users (never upgraded, or upgraded and churned back
+// to free — is_pro=false covers both, no separate handling needed).
+// step 0 = none sent, 1 = 24h, 2 = 3d, 3 = 5d (Stripe-vs-LeakCheck
+// objection handling), 4 = 7d, 5 = 14d, 6 = 30d (final)
 const STEPS = [
   { step: 1, minAge: 24 * 60 * 60 * 1000 },
   { step: 2, minAge: 3  * 24 * 60 * 60 * 1000 },
   { step: 3, minAge: 5  * 24 * 60 * 60 * 1000 },
   { step: 4, minAge: 7  * 24 * 60 * 60 * 1000 },
   { step: 5, minAge: 14 * 24 * 60 * 60 * 1000 },
+  { step: 6, minAge: 30 * 24 * 60 * 60 * 1000 },
 ]
 
 export async function GET(request: NextRequest) {
@@ -41,8 +43,9 @@ export async function GET(request: NextRequest) {
 
   const { data: profiles, error: profErr } = await admin
     .from('profiles')
-    .select('id, email, is_pro, created_at, stripe_upgrade_step, stripe_upgrade_sent_at')
+    .select('id, email, is_pro, created_at, churned_at, stripe_upgrade_step, stripe_upgrade_sent_at')
     .eq('is_pro', false)
+    .eq('is_test', false)
     .not('email', 'is', null)
 
   if (profErr) {
@@ -51,23 +54,24 @@ export async function GET(request: NextRequest) {
   }
   if (!profiles?.length) return NextResponse.json({ sent: 0 })
 
-  const realProfiles = profiles.filter(p => !isTestEmail(p.email!))
-
   // Map connection created_at by user_id
   const connMap = new Map((connections ?? []).map(c => [c.user_id, c.created_at]))
 
   let sent = 0
   const preview: Array<{ email: string; step: number; hasStripe: boolean; totalLost: number; failCount: number }> = []
 
-  for (const user of realProfiles) {
+  for (const user of profiles) {
     const currentStep: number = user.stripe_upgrade_step ?? 0
 
-    // Stop after step 5
-    if (currentStep >= 5) continue
+    // Stop after step 6
+    if (currentStep >= 6) continue
 
-    // Age off the Stripe connection date when there is one; otherwise off signup date.
+    // Win-back users (churned_at set) age off their cancellation date — the
+    // webhook resets stripe_upgrade_step to 0 at the same time, so this
+    // always lines up with a fresh sequence. Otherwise: connection date, or
+    // signup date if Stripe was never connected.
     const connectedAt = connMap.get(user.id)
-    const anchorAt = connectedAt ?? user.created_at
+    const anchorAt = user.churned_at ?? connectedAt ?? user.created_at
     if (!anchorAt) continue
 
     const ageMs = now - new Date(anchorAt).getTime()

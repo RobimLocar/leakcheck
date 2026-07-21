@@ -447,10 +447,19 @@ const STRIPE_UPGRADE_STEPS: Record<number, { subject: string; headline: string; 
     cta: 'Get Lifetime Deal — $149 →',
   },
   5: {
-    subject: 'Last nudge from LeakCheck — then we\'ll leave you alone',
-    headline: 'Last one. Promise.',
+    subject: 'Two weeks in — still on the Free plan',
+    headline: 'Still watching. Still not recovering.',
     body: 'Two weeks in and automatic recovery still isn\'t switched on for your account.<br><br>If the timing\'s just not right, no hard feelings. You can upgrade anytime from your dashboard when you\'re ready.<br><br>The Free plan stays free forever.',
     cta: 'Upgrade when ready →',
+  },
+  // Final email in the sequence — also reaches win-back users whose is_pro
+  // flipped back to false after a cancellation, not just users who never
+  // upgraded. Copy stays neutral so it reads right for both.
+  6: {
+    subject: 'One month on the Free plan — still worth $29 to you?',
+    headline: 'A month in. Still on the table.',
+    body: 'It\'s been a month and failed payments are still going unrecovered on your account.<br><br>If this isn\'t a priority right now — or Pro isn\'t the right fit anymore — no hard feelings, and this is the last email in this sequence. If you just haven\'t gotten around to it, upgrading is one click from your dashboard.<br><br>The Free plan stays free either way.',
+    cta: 'Upgrade now — $29/mo →',
   },
 }
 
@@ -462,14 +471,14 @@ type UpgradeCtx = {
 }
 
 function buildUpgradeCopy(step: number, ctx?: UpgradeCtx): { subject: string; headline: string; body: string; cta: string } {
-  const base = STRIPE_UPGRADE_STEPS[step] ?? STRIPE_UPGRADE_STEPS[5]
+  const base = STRIPE_UPGRADE_STEPS[step] ?? STRIPE_UPGRADE_STEPS[6]
 
   // No real data — use generic copy as-is
   if (!ctx || ctx.totalLost === 0) return base
 
-  // Step 3 is the Stripe-vs-LeakCheck objection-handling email — evergreen
-  // feature comparison, not a $-lost pitch, so it never gets personalized.
-  if (step === 3) return base
+  // Step 3 (Stripe-vs-LeakCheck objection handling) and step 6 (final /
+  // win-back) are evergreen — never personalized with $-lost figures.
+  if (step === 3 || step === 6) return base
 
   const amt = `$${ctx.totalLost.toLocaleString('en-US')}`
   const count = ctx.failCount
