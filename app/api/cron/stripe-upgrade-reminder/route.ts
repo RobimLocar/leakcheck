@@ -1,14 +1,16 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendStripeUpgradeReminder } from '@/lib/resend/client'
+import { isTestEmail } from '@/lib/testAccounts'
 import { type NextRequest, NextResponse } from 'next/server'
 
-// Sequence for users who connected Stripe but haven't upgraded to Pro
-// step 0 = none sent, 1 = 24h, 2 = 3d, 3 = 7d, 4 = 14d (final)
+// Sequence for non-Pro users. step 0 = none sent, 1 = 24h, 2 = 3d,
+// 3 = 5d (Stripe-vs-LeakCheck objection handling), 4 = 7d, 5 = 14d (final)
 const STEPS = [
   { step: 1, minAge: 24 * 60 * 60 * 1000 },
   { step: 2, minAge: 3  * 24 * 60 * 60 * 1000 },
-  { step: 3, minAge: 7  * 24 * 60 * 60 * 1000 },
-  { step: 4, minAge: 14 * 24 * 60 * 60 * 1000 },
+  { step: 3, minAge: 5  * 24 * 60 * 60 * 1000 },
+  { step: 4, minAge: 7  * 24 * 60 * 60 * 1000 },
+  { step: 5, minAge: 14 * 24 * 60 * 60 * 1000 },
 ]
 
 export async function GET(request: NextRequest) {
@@ -17,10 +19,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // ?dryRun=true: compute who would get an email and what step, without
+  // sending via Resend or advancing stripe_upgrade_step. Safe to run against
+  // production data as many times as needed.
+  const dryRun = request.nextUrl.searchParams.get('dryRun') === 'true'
+
   const admin = createAdminClient()
   const now = Date.now()
 
-  // Users who connected Stripe but are not Pro
+  // All non-Pro users get the sequence. Stripe connection is optional — when
+  // present we personalize with real failed-payment numbers; when absent we
+  // fall back to generic copy and age the sequence off signup date instead.
   const { data: connections, error: connErr } = await admin
     .from('stripe_connections')
     .select('user_id, created_at')
@@ -29,14 +38,10 @@ export async function GET(request: NextRequest) {
     console.error('[stripe-upgrade-reminder] connections query failed:', connErr.message)
     return NextResponse.json({ error: connErr.message }, { status: 500 })
   }
-  if (!connections?.length) return NextResponse.json({ sent: 0 })
-
-  const connectedUserIds = connections.map(c => c.user_id)
 
   const { data: profiles, error: profErr } = await admin
     .from('profiles')
-    .select('id, email, is_pro, stripe_upgrade_step, stripe_upgrade_sent_at')
-    .in('id', connectedUserIds)
+    .select('id, email, is_pro, created_at, stripe_upgrade_step, stripe_upgrade_sent_at')
     .eq('is_pro', false)
     .not('email', 'is', null)
 
@@ -46,30 +51,38 @@ export async function GET(request: NextRequest) {
   }
   if (!profiles?.length) return NextResponse.json({ sent: 0 })
 
+  const realProfiles = profiles.filter(p => !isTestEmail(p.email!))
+
   // Map connection created_at by user_id
-  const connMap = new Map(connections.map(c => [c.user_id, c.created_at]))
+  const connMap = new Map((connections ?? []).map(c => [c.user_id, c.created_at]))
 
   let sent = 0
+  const preview: Array<{ email: string; step: number; hasStripe: boolean; totalLost: number; failCount: number }> = []
 
-  for (const user of profiles) {
+  for (const user of realProfiles) {
     const currentStep: number = user.stripe_upgrade_step ?? 0
 
-    // Stop after step 4
-    if (currentStep >= 4) continue
+    // Stop after step 5
+    if (currentStep >= 5) continue
 
+    // Age off the Stripe connection date when there is one; otherwise off signup date.
     const connectedAt = connMap.get(user.id)
-    if (!connectedAt) continue
+    const anchorAt = connectedAt ?? user.created_at
+    if (!anchorAt) continue
 
-    const ageMs = now - new Date(connectedAt).getTime()
+    const ageMs = now - new Date(anchorAt).getTime()
     const upcoming = STEPS.find(s => s.step === currentStep + 1)
     if (!upcoming || ageMs < upcoming.minAge) continue
 
-    // Buscar dados reais de pagamentos falhados para personalizar o email
-    const { data: payments } = await admin
-      .from('failed_payments')
-      .select('amount, failure_reason, status')
-      .eq('user_id', user.id)
-      .eq('status', 'open')
+    // Dados reais de pagamentos falhados só existem se o Stripe foi conectado;
+    // sem conexão, buildUpgradeCopy cai na copy genérica (totalLost === 0).
+    const payments = connectedAt
+      ? (await admin
+          .from('failed_payments')
+          .select('amount, failure_reason, status')
+          .eq('user_id', user.id)
+          .eq('status', 'open')).data
+      : null
 
     const totalLostCents = payments?.reduce((s, p) => s + p.amount, 0) ?? 0
     const totalLost = Math.round(totalLostCents / 100)
@@ -87,6 +100,12 @@ export async function GET(request: NextRequest) {
     // Dias desde a conexão (para calcular urgência de janela)
     const daysConnected = Math.floor(ageMs / 86400000)
     const daysLeft = Math.max(0, 30 - daysConnected)
+
+    if (dryRun) {
+      preview.push({ email: user.email!, step: upcoming.step, hasStripe: !!connectedAt, totalLost, failCount })
+      sent++
+      continue
+    }
 
     await sendStripeUpgradeReminder(user.email!, upcoming.step, {
       totalLost,
@@ -106,6 +125,6 @@ export async function GET(request: NextRequest) {
     sent++
   }
 
-  console.log(`[stripe-upgrade-reminder] sent ${sent} reminder(s)`)
-  return NextResponse.json({ sent })
+  console.log(`[stripe-upgrade-reminder] ${dryRun ? 'would send' : 'sent'} ${sent} reminder(s)`)
+  return NextResponse.json(dryRun ? { wouldSend: sent, preview } : { sent })
 }

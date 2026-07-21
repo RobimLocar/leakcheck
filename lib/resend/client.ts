@@ -410,29 +410,46 @@ export async function sendTeamInvite(opts: {
   if (error) console.error('[resend] team invite failed:', error.message)
 }
 
+// Generic fallback copy (no real Stripe failure data to personalize with) —
+// must read correctly for BOTH audiences this cron targets: users who
+// connected Stripe and haven't upgraded, and users who never connected
+// Stripe at all. So it can't assume "you connected Stripe already".
 const STRIPE_UPGRADE_STEPS: Record<number, { subject: string; headline: string; body: string; cta: string }> = {
   1: {
-    subject: 'Your Stripe is connected — one step left to start recovering',
-    headline: 'You\'re in. Now activate recovery.',
-    body: 'You connected your Stripe account — that\'s the hard part done.<br><br>Right now LeakCheck is <strong style="color:#fff;">watching your payments</strong> but not recovering them yet. Upgrade to Pro and every failed charge gets an automatic retry + recovery email sent to your customer.<br><br>Average recovery in the first month: <strong style="color:#22c55e;">$340</strong>. The plan costs $29.',
+    subject: 'Stop failed payments from slipping away — activate recovery',
+    headline: 'You\'re missing money right now.',
+    body: 'Failed payments happen every day, and on the Free plan nothing chases them down automatically.<br><br>Pro connects to Stripe, watches for failures, and sends an automatic retry + recovery email to your customer — no manual work.<br><br>Average recovery in the first month: <strong style="color:#22c55e;">$340</strong>. The plan costs $29.',
     cta: 'Activate Recovery — $29/mo →',
   },
   2: {
-    subject: 'Your dashboard has data. Your wallet doesn\'t — yet.',
-    headline: 'You can see the leak. Now plug it.',
-    body: 'You\'ve seen what\'s failing in your Stripe account. Every one of those failed payments is recoverable — with the right retry timing and the right email to your customer.<br><br>On the Free plan, LeakCheck watches. On Pro, it <strong style="color:#fff;">acts</strong>. One upgrade, and every future failed payment gets a recovery sequence automatically.',
+    subject: 'Still leaving failed payments unrecovered',
+    headline: 'The longer you wait, the less you recover.',
+    body: 'Failed payments age out of the recovery window fast — the best time to retry is the day they fail.<br><br>On Pro, that happens automatically the moment a payment fails. On Free, nothing happens until you check manually.',
     cta: 'Start Recovering →',
   },
+  // Objection-handling step: "doesn't Stripe already do this with Smart
+  // Retries?" — evergreen content, always shown as-is regardless of the
+  // user's real failed-payment numbers (see buildUpgradeCopy).
   3: {
-    subject: 'One week in — still leaving money on the table',
-    headline: 'A week of watching. Zero recovering.',
-    body: 'You\'ve had a full week of visibility into your failed payments. If you\'re not on Pro yet, those charges are sitting there unrecovered.<br><br>Worth mentioning: there\'s a <strong style="color:#fff;">Lifetime Deal at $149</strong> — pay once, use forever, all future features included. 13 of 20 spots taken. Once it\'s gone, it\'s monthly only.',
-    cta: 'Get Lifetime Deal — $149 →',
+    subject: '"Doesn\'t Stripe already retry failed payments?" — here\'s the difference',
+    headline: 'Smart Retries isn\'t the same as recovery.',
+    body: 'Stripe\'s Smart Retries quietly retries the card a few times and, at best, fires one generic email from a no-reply address. That\'s the whole feature.<br><br>LeakCheck adds what Stripe doesn\'t:<br><br>' +
+      '<strong style="color:#fff;">Instant alerts</strong> — Slack, Telegram, or email the moment a payment fails, so you can jump on a high-value failure yourself instead of finding out weeks later.<br><br>' +
+      '<strong style="color:#fff;">A number you can see</strong> — your dashboard shows exactly what you\'re leaking this month, not a report buried three menus deep.<br><br>' +
+      '<strong style="color:#fff;">Human, multi-channel sequences</strong> — email + SMS you write yourself (or draft with AI), instead of one cold templated email.<br><br>' +
+      '<strong style="color:#fff;">Replies reach you</strong> — customers who reply land in your real inbox, not a no-reply address that kills the conversation.',
+    cta: 'See what Stripe doesn\'t show you →',
   },
   4: {
+    subject: 'One week in — still leaving money on the table',
+    headline: 'A week without recovery running.',
+    body: 'It\'s been a week and failed payments are still going unrecovered on your account.<br><br>Worth mentioning: there\'s a <strong style="color:#fff;">Lifetime Deal at $149</strong> — pay once, use forever, all future features included. 13 of 20 spots taken. Once it\'s gone, it\'s monthly only.',
+    cta: 'Get Lifetime Deal — $149 →',
+  },
+  5: {
     subject: 'Last nudge from LeakCheck — then we\'ll leave you alone',
     headline: 'Last one. Promise.',
-    body: 'You connected Stripe two weeks ago and you\'ve seen your data. If the numbers you saw were enough to make you think "I should fix this" — this is the moment.<br><br>If the timing\'s just not right, no hard feelings. You can upgrade anytime from your dashboard when you\'re ready.<br><br>The Free plan stays free forever.',
+    body: 'Two weeks in and automatic recovery still isn\'t switched on for your account.<br><br>If the timing\'s just not right, no hard feelings. You can upgrade anytime from your dashboard when you\'re ready.<br><br>The Free plan stays free forever.',
     cta: 'Upgrade when ready →',
   },
 }
@@ -445,10 +462,14 @@ type UpgradeCtx = {
 }
 
 function buildUpgradeCopy(step: number, ctx?: UpgradeCtx): { subject: string; headline: string; body: string; cta: string } {
-  const base = STRIPE_UPGRADE_STEPS[step] ?? STRIPE_UPGRADE_STEPS[4]
+  const base = STRIPE_UPGRADE_STEPS[step] ?? STRIPE_UPGRADE_STEPS[5]
 
   // No real data — use generic copy as-is
   if (!ctx || ctx.totalLost === 0) return base
+
+  // Step 3 is the Stripe-vs-LeakCheck objection-handling email — evergreen
+  // feature comparison, not a $-lost pitch, so it never gets personalized.
+  if (step === 3) return base
 
   const amt = `$${ctx.totalLost.toLocaleString('en-US')}`
   const count = ctx.failCount
@@ -473,7 +494,7 @@ function buildUpgradeCopy(step: number, ctx?: UpgradeCtx): { subject: string; he
     }
   }
 
-  if (step === 3) {
+  if (step === 4) {
     return {
       subject: `One week in — ${amt} still unrecovered`,
       headline: `A week of watching. Zero recovering.`,
@@ -482,7 +503,7 @@ function buildUpgradeCopy(step: number, ctx?: UpgradeCtx): { subject: string; he
     }
   }
 
-  if (step === 4) {
+  if (step === 5) {
     return {
       subject: `Last nudge — ${amt} still on the table`,
       headline: `Last one. Promise.`,

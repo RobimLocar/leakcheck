@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendActivationReminder } from '@/lib/resend/client'
+import { isTestEmail } from '@/lib/testAccounts'
 import { type NextRequest, NextResponse } from 'next/server'
 
 // Sequence: step 0 = none sent, 1 = 24h, 2 = 72h, 3 = 7d, 4 = 30d, 5+ = monthly
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
     .in('user_id', profiles.map(p => p.id))
 
   const connectedIds = new Set((connections ?? []).map(c => c.user_id))
-  const targets = profiles.filter(p => !connectedIds.has(p.id))
+  const targets = profiles.filter(p => !connectedIds.has(p.id) && !isTestEmail(p.email!))
 
   let sent = 0
 
